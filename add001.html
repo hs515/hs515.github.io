@@ -14,8 +14,8 @@
         let questions = new Array();
 
         function createNext() {
-            const n1 = randomNumberLessThan(10);
-            const n2 = randomNumberLessThan(10);
+            const n1 = randomNumberLessThan(10, "linear");
+            const n2 = randomNumberLessThan(10, "sqrt");
             questions[questions.length] = {
                 first: n1,
                 second: n2,
