@@ -1,6 +1,6 @@
-let number = 10;
-let numberOfCorrect = 0;
-let questions = new Array();
+let questionList = new Array();
+let numberOfCorrectAnswers = 0;
+let questionType = "multi_0";
 
 document.addEventListener('DOMContentLoaded', () => {
     initializePage();
@@ -9,10 +9,17 @@ document.addEventListener('DOMContentLoaded', () => {
 function initializePage() {
     initializePageBody();
     initializeEventListeners();
-    createNewQuestion();
+    resetQuestionList();
+    createNewQuestion(questionType);
+}
+
+function resetQuestionList() {
+    numberOfCorrectAnswers = 0;
+    questionList = new Array();
 }
 
 function initializePageBody() {
+    document.querySelector('#page_body').innerHTML = '';
     document.querySelector('#page_body').innerHTML += initializeNavigator();
     document.querySelector('#page_body').innerHTML += initializeQuestionBody();
     document.querySelector('#page_body').innerHTML += initializeMessage();
@@ -29,10 +36,7 @@ function initializeQuestionBody() {
         '<div class="alert alert-info" role="alert">' +
         '    <h3 id="question_description">Question Description</h3>' +
         '    <form id="question_form">' +
-        '        <label id="question_n1" for="question_n1">1</label>' +
-        '        x' +
-        '        <label id="question_n2" for="question_n2">1</label>' +
-        '        =' +
+        '        <label id="question_formula" for="question_formula">Question Formula</label>' +
         '        <input type="number" id="question_answer" placeholder="Answer">' +
         '        <input type="submit" id="question_submit">' +
         '    </form>' +
@@ -79,38 +83,103 @@ function initializeEventListeners() {
     }
 }
 
-function createNewQuestion() {
-    const n1 = randomNumberLessThan(10, "linear");
-    const n2 = randomNumberLessThan(10, "sqrt");
-    questions[questions.length] = {
-        first: n1,
-        second: n2,
-        answer: undefined
-    };
-    document.querySelector('#question_n1').innerHTML = n1;
-    document.querySelector('#question_n2').innerHTML = n2;
+function createNewQuestion(questionType) {
+    let n1 = randomNumberBetween(2, 9, "linear");
+    let n2 = randomNumberBetween(4, 9, "linear");
+    switch (questionType) {
+        case "multi_1":
+            n1 = 1;
+            break;
+        case "multi_2":
+            n1 = 2;
+            break;
+        case "multi_3":
+            n1 = 3;
+            break;
+        case "multi_4":
+            n1 = 4;
+            break;
+        case "multi_5":
+            n1 = 5;
+            break;
+        case "multi_6":
+            n1 = 6;
+            break;
+        case "multi_7":
+            n1 = 7;
+            break;
+        case "multi_8":
+            n1 = 8;
+            break;
+        case "multi_9":
+            n1 = 9;
+            break;
+        case "multi_0":
+        default:
+            break;
+    }
+    questionList[questionList.length] = new multiplicationQuestion(n1, n2);
+    document.querySelector('#question_formula').innerHTML = questionList[questionList.length - 1].questionFormula();
+}
+
+function multiplicationQuestion(number1, number2) {
+    this.number1 = number1;
+    this.number2 = number2;
+    this.expected = number1 * number2;
+    this.answer = undefined;
+
+    this.setAnswer = setAnswer;
+    function setAnswer(answer) {
+        this.answer = answer;
+    }
+
+    this.getAnswer = getAnswer;
+    function getAnswer() {
+        return this.answer;
+    }
+
+    this.validateAnswer = validateAnswer;
+    function validateAnswer() {
+        return (this.expected === this.answer);
+    }
+
+    this.questionFormula = questionFormula;
+    function questionFormula() {
+        return `${this.number1} x ${this.number2} = `;
+    }
 }
 
 function saveAnswer() {
     if (document.querySelector('#question_answer').value.length > 0) {
-        const cur = questions[questions.length - 1];
-        cur.answer = parseInt(document.querySelector('#question_answer').value);
-        const li = document.createElement('p');
-        let result = (cur.first * cur.second === cur.answer);
-        numberOfCorrect += result;
-        let mark = result ? "<span class=\"badge badge-success\">T</span>" : "<span class=\"badge badge-danger\">F</span>";
-        let danger = result ? "<div class=\"alert alert-success\" role=\"alert\">" : "<div class=\"alert alert-danger\" role=\"alert\">";
-
-        li.innerHTML = `${danger} ${mark} ${cur.first} x ${cur.second} = ${cur.answer} </div>`;
-        document.querySelector('#question_list').prepend(li);
-
-        document.querySelector('#question_answer').value = "";
-        createNewQuestion();
-
-        document.querySelector('#question_summary').innerHTML = `Answers ${numberOfCorrect}/${questions.length - 1}`
-        document.getElementById("question_message").hidden = true;
+        const answer = parseInt(document.querySelector('#question_answer').value);
+        questionList[questionList.length - 1].setAnswer(answer);
+        updatePageBody();
     } else {
         document.getElementById("question_message").innerHTML = "Please input your answer then submit.";
         document.getElementById("question_message").hidden = false;
+    }
+}
+
+function updatePageBody() {
+    const element = document.createElement('p');
+    const cur = questionList[questionList.length - 1];
+    element.style.margin = 0;
+    let result = cur.validateAnswer();
+    numberOfCorrectAnswers += result;
+    let mark = result ? "<span class=\"badge badge-success\">T</span>" : "<span class=\"badge badge-danger\">F</span>";
+    let danger = result ? "<div class=\"alert alert-success\" role=\"alert\">" : "<div class=\"alert alert-danger\" role=\"alert\">";
+
+    element.innerHTML = `${danger} ${mark} ${cur.questionFormula()} ${cur.getAnswer()} </div>`;
+    document.querySelector('#question_list').prepend(element);
+
+    if (questionList.length === 100) {
+        document.getElementById("question_message").innerHTML = "Congratulations!!<br>You have completed 100 questions! Show your mom and ask for a treat!";
+        document.getElementById("question_message").hidden = false;
+    } else {
+        document.querySelector('#question_answer').value = "";
+        createNewQuestion(questionType);
+    
+        document.querySelector('#question_summary').innerHTML = `Answers ${numberOfCorrectAnswers}/${questionList.length - 1}`
+        document.getElementById("question_message").hidden = true;
     }
 }
