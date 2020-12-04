@@ -13,6 +13,6 @@ function randomNumberBetween(start, end, mode) {
         rn = Math.sqrt(rn);
     }
 
-    var x = Math.floor(rn * (end - start)) + start;
+    var x = Math.floor(rn * (end - start + 1)) + start;
     return x;
 }
