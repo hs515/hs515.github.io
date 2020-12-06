@@ -21,35 +21,6 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"
         type="text/javascript"></script>
 
-
-    <script type="text/javascript">
-        /// some script
-
-        // jquery ready start
-        $(document).ready(function () {
-            // jQuery code
-
-            //////////////////////// Prevent closing from click inside dropdown
-            $(document).on('click', '.dropdown-menu', function (e) {
-                e.stopPropagation();
-            });
-
-            // make it as accordion for smaller screens
-            if ($(window).width() < 992) {
-                $('.dropdown-menu a').click(function (e) {
-                    e.preventDefault();
-                    if ($(this).next('.submenu').length) {
-                        $(this).next('.submenu').toggle();
-                    }
-                    $('.dropdown').on('hide.bs.dropdown', function () {
-                        $(this).find('.submenu').hide();
-                    })
-                });
-            }
-
-        }); // jquery end
-    </script>
-
     <style type="text/css">
         @media (min-width: 992px) {
             .dropdown-menu .dropdown-toggle:after {
@@ -87,6 +58,11 @@
             .dropdown-menu>li:hover>.submenu {
                 display: block;
             }
+
+            .alert {
+                margin-top: 0;
+                margin-bottom: 0;
+            }
         }
     </style>
 </head>
@@ -109,7 +85,6 @@
             }
 
             changeCategory = (category, subcategory) => {
-                console.log(`Changed ${category} -> ${subcategory}`);
                 if ((category !== this.state.category) || (subcategory !== this.state.subcategory)) {
                     this.setState({
                         category: category,
@@ -133,7 +108,7 @@
                 return (
                     <div>
                         <NavigatorBar brand="MathBox" onCategoryChange={this.changeCategory} />
-                        <Question category={this.state.category} subcategory={this.state.subcategory} onHistoryUpdate={this.updateHistory}  total={this.state.total} finished={this.state.finished} />
+                        <Question category={this.state.category} subcategory={this.state.subcategory} onHistoryUpdate={this.updateHistory} total={this.state.total} finished={this.state.finished} />
                         <AnswerList total={this.state.total} score={this.state.score} finished={this.state.finished} history={this.state.history} />
                     </div>
                 );
@@ -143,41 +118,63 @@
         class NavigatorBar extends React.Component {
             render() {
                 return (
-                    <nav className="navbar navbar-expand-lg navbar-dark bg-primary">
-                        <a className="navbar-brand" href="#"> {this.props.brand} </a>
-                        <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#main_nav">
-                            <span className="navbar-toggler-icon"></span>
-                        </button>
-                        <div className="collapse navbar-collapse" id="main_nav">
-                            <ul className="navbar-nav">
-                                <li className="nav-item dropdown">
-                                    <a className="nav-link dropdown-toggle" href="#" data-toggle="dropdown"> Multiplication </a>
-                                    <ul className="dropdown-menu">
-                                        <DropdownItem category="multiplication" subcategory="000" description="Q: ? x ?" onCategoryChange={this.props.onCategoryChange} />
-                                        <DropdownItem category="multiplication" subcategory="001" description="Q: 1 x ?" onCategoryChange={this.props.onCategoryChange} />
-                                        <DropdownItem category="multiplication" subcategory="002" description="Q: 2 x ?" onCategoryChange={this.props.onCategoryChange} />
-                                        <DropdownItem category="multiplication" subcategory="003" description="Q: 3 x ?" onCategoryChange={this.props.onCategoryChange} />
-                                        <DropdownItem category="multiplication" subcategory="004" description="Q: 4 x ?" onCategoryChange={this.props.onCategoryChange} />
-                                        <DropdownItem category="multiplication" subcategory="005" description="Q: 5 x ?" onCategoryChange={this.props.onCategoryChange} />
-                                        <DropdownItem category="multiplication" subcategory="006" description="Q: 6 x ?" onCategoryChange={this.props.onCategoryChange} />
-                                        <DropdownItem category="multiplication" subcategory="007" description="Q: 7 x ?" onCategoryChange={this.props.onCategoryChange} />
-                                        <DropdownItem category="multiplication" subcategory="008" description="Q: 8 x ?" onCategoryChange={this.props.onCategoryChange} />
-                                        <DropdownItem category="multiplication" subcategory="009" description="Q: 9 x ?" onCategoryChange={this.props.onCategoryChange} />
-                                        <MultiPlicationDropdownOthers category="multiplication" description="Others" onCategoryChange={this.props.onCategoryChange} />
-                                    </ul>
-                                </li>
-                            </ul>
-                        </div>
-                    </nav>
+                    <div className="sticky-top">
+                        <nav className="navbar navbar-expand-lg navbar-dark bg-primary">
+                            <a className="navbar-brand" href="#"> {this.props.brand} </a>
+                            <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+                                <span className="navbar-toggler-icon"></span>
+                            </button>
+                            <div className="collapse navbar-collapse" id="navbarNavDropdown">
+                                <ul className="navbar-nav">
+                                    <AdditionDropdown category="addition" description="Addition" onCategoryChange={this.props.onCategoryChange} />
+                                    <SubtractionDropdown category="subtraction" description="Subtraction" onCategoryChange={this.props.onCategoryChange} />
+                                    <MultiplicationDropdown category="multiplication" description="Multiplication" onCategoryChange={this.props.onCategoryChange} />
+                                </ul>
+                            </div>
+                        </nav>
+                    </div>
                 );
             }
         }
 
-        class MultiPlicationDropdown extends React.Component {
+        class AdditionDropdown extends React.Component {
             render() {
                 return (
-                    <li><a className="dropdown-item" href=""> {this.props.description} &raquo; </a>
-                        <ul className="submenu dropdown-menu">
+                    <li className="nav-item dropdown active">
+                        <a className="nav-link dropdown-toggle" href="#" data-toggle="dropdown"> {this.props.description} </a>
+                        <ul className="dropdown-menu">
+                            <DropdownItem category={this.props.category} subcategory="005" description="Q: Add to 5" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="010" description="Q: Add to 10" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="020" description="Q: Add to 20" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="100" description="Q: Add to 100" onCategoryChange={this.props.onCategoryChange} />
+                        </ul>
+                    </li>
+                );
+            }
+        }
+
+        class SubtractionDropdown extends React.Component {
+            render() {
+                return (
+                    <li className="nav-item dropdown active">
+                        <a className="nav-link dropdown-toggle" href="#" data-toggle="dropdown"> {this.props.description} </a>
+                        <ul className="dropdown-menu">
+                            <DropdownItem category={this.props.category} subcategory="005" description="Q: Subtract to 5" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="010" description="Q: Subtract to 10" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="020" description="Q: Subtract to 20" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="100" description="Q: Subtract to 100" onCategoryChange={this.props.onCategoryChange} />
+                        </ul>
+                    </li>
+                );
+            }
+        }
+
+        class MultiplicationDropdown extends React.Component {
+            render() {
+                return (
+                    <li className="nav-item dropdown active">
+                        <a className="nav-link dropdown-toggle" href="#" data-toggle="dropdown"> {this.props.description} </a>
+                        <ul className="dropdown-menu">
                             <DropdownItem category={this.props.category} subcategory="000" description="Q: ? x ?" onCategoryChange={this.props.onCategoryChange} />
                             <DropdownItem category={this.props.category} subcategory="001" description="Q: 1 x ?" onCategoryChange={this.props.onCategoryChange} />
                             <DropdownItem category={this.props.category} subcategory="002" description="Q: 2 x ?" onCategoryChange={this.props.onCategoryChange} />
@@ -188,7 +185,8 @@
                             <DropdownItem category={this.props.category} subcategory="007" description="Q: 7 x ?" onCategoryChange={this.props.onCategoryChange} />
                             <DropdownItem category={this.props.category} subcategory="008" description="Q: 8 x ?" onCategoryChange={this.props.onCategoryChange} />
                             <DropdownItem category={this.props.category} subcategory="009" description="Q: 9 x ?" onCategoryChange={this.props.onCategoryChange} />
-                            <MultiPlicationDropdownOthers category="multiplication" description="Others" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="010" description="Q: ? x 1?" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="020" description="Q: 1? x 1?" onCategoryChange={this.props.onCategoryChange} />
                         </ul>
                     </li>
                 );
@@ -226,7 +224,6 @@
             }
 
             render() {
-                console.log(`${this.props.finished} / ${this.props.total}`);
                 if (this.props.finished === this.props.total) {
                     return (
                         <div className="alert alert-danger" role="alert">
@@ -235,19 +232,33 @@
                         </div>
                     );
                 } else {
+                    let description = '';
                     switch (this.props.category) {
-                    case "multiplication":
-                        return (
-                            <MultiplicationQuestion subcategory={this.props.subcategory} onHistoryUpdate={this.props.onHistoryUpdate} key={this.props.subcategory} />
-                        );
-                        break;
-                    default:
-                        return (
-                            <div className="alert alert-warning" role="alert">
-                                <h3>Please select a question to start!</h3>
-                            </div>
-                        );
-                        break;
+                        case "addition":
+                            description = `Addition ${this.props.subcategory}`;
+                            return (
+                                <AdditionQuestion subcategory={this.props.subcategory} onHistoryUpdate={this.props.onHistoryUpdate} description={description} key={this.props.subcategory} />
+                            );
+                            break;
+                        case "subtraction":
+                            description = `Subtraction ${this.props.subcategory}`;
+                            return (
+                                <SubtractionQuestion subcategory={this.props.subcategory} onHistoryUpdate={this.props.onHistoryUpdate} description={description} key={this.props.subcategory} />
+                            );
+                            break;
+                        case "multiplication":
+                            description = `Multiplication ${this.props.subcategory}`;
+                            return (
+                                <MultiplicationQuestion subcategory={this.props.subcategory} onHistoryUpdate={this.props.onHistoryUpdate} description={description} key={this.props.subcategory} />
+                            );
+                            break;
+                        default:
+                            return (
+                                <h3 className="alert alert-warning" role="alert">
+                                    Please select a question to start!
+                                </h3>
+                            );
+                            break;
                     }
                 }
             }
@@ -262,6 +273,146 @@
                     expected: 1,
                     response: ''
                 };
+            }
+
+            updateResponse = event => {
+                this.setState({
+                    response: event.target.value
+                })
+            }
+
+            submitAnswer = event => {
+                if (event.key === 'Enter') {
+                    if (isNumeric(this.state.response)) {
+                    const answer = parseInt(this.state.response);
+                    const status = (answer === this.state.expected);
+                    const mark = status ? '<span className="badge badge-success">T</span>' : '<span className="badge badge-danger">F</span>';
+                    const formula = `<div> ${mark} ${this.printQuestion()} ${this.state.response} </div>`;
+
+                    this.props.onHistoryUpdate(status, formula);
+                    this.state.response = '';
+
+                    if (status) {
+                        this.createQuestion();
+                    }
+                }
+                }
+            }
+
+            render() {
+                return (
+                    <div className="alert alert-info" role="alert">
+                        <p> {this.props.description}</p>
+                        <label> {this.printQuestion()} &nbsp; </label>
+                        <input type="number" onKeyPress={this.submitAnswer} onChange={this.updateResponse} value={this.state.response} placeholder="Answer" />
+                    </div>
+                );
+            }
+        }
+
+        class AdditionQuestion extends TwoNumberQuestion {
+            constructor(props) {
+                super(props);
+
+                var number1 = this.createNumber1();
+                var number2 = this.createNumber1()
+                this.state.num1 = number1;
+                this.state.num2 = number2;
+                this.state.expected = number1 + number2;
+            }
+
+            createNumber1 = () => {
+                var n1 = 1;
+                switch (this.props.subcategory) {
+                    case "005":
+                        n1 = randomNumberBetween(1, 5, "linear");
+                        break;
+                    case "010":
+                        n1 = randomNumberBetween(1, 10, "linear");
+                        break;
+                    case "020":
+                        n1 = randomNumberBetween(1, 20, "linear");
+                        break;
+                    case "100":
+                        n1 = randomNumberBetween(10, 100, "linear");
+                        break;
+                }
+                return n1;
+            }
+
+            createQuestion = () => {
+                var number1 = this.createNumber1();
+                var number2 = this.createNumber1();
+                if (randomSwitch()) {
+                    this.setState({
+                        num1: number2,
+                        num2: number1,
+                        expected: number1 + number2
+                    });
+                } else {
+                    this.setState({
+                        num1: number1,
+                        num2: number2,
+                        expected: number1 + number2
+                    });
+                }
+            }
+
+            printQuestion = () => {
+                return `${this.state.num1} + ${this.state.num2} = `;
+            }
+        }
+
+        class SubtractionQuestion extends TwoNumberQuestion {
+            constructor(props) {
+                super(props);
+
+                var number1 = this.createNumber1();
+                var number2 = this.createNumber1()
+                this.state.num1 = (number1>number2) ? number1 : number2;
+                this.state.num2 = (number1>number2) ? number2 : number1;
+                this.state.expected = this.state.num1 - this.state.num2;
+            }
+
+            createNumber1 = () => {
+                var n1 = 1;
+                switch (this.props.subcategory) {
+                    case "005":
+                        n1 = randomNumberBetween(1, 5, "linear");
+                        break;
+                    case "010":
+                        n1 = randomNumberBetween(1, 10, "linear");
+                        break;
+                    case "020":
+                        n1 = randomNumberBetween(1, 20, "linear");
+                        break;
+                    case "100":
+                        n1 = randomNumberBetween(10, 100, "linear");
+                        break;
+                }
+                return n1;
+            }
+
+            createQuestion = () => {
+                var number1 = this.createNumber1();
+                var number2 = this.createNumber1();
+                if (number1 > number2) {
+                    this.setState({
+                        num1: number1,
+                        num2: number2,
+                        expected: number1 - number2
+                    });
+                } else {
+                    this.setState({
+                        num1: number2,
+                        num2: number1,
+                        expected: number2 - number1
+                    });
+                }
+            }
+
+            printQuestion = () => {
+                return `${this.state.num1} - ${this.state.num2} = `;
             }
         }
 
@@ -309,59 +460,47 @@
                     case "009":
                         n1 = 9;
                         break;
+                    case "010":
+                        n1 = randomNumberBetween(1, 10, "linear");
+                        break;
+                    case "020":
+                        n1 = randomNumberBetween(10, 20, "linear");
+                        break;
                 }
                 return n1;
             }
 
             createNumber2 = () => {
                 var n2 = randomNumberBetween(2, 9, "linear");
+                switch (this.props.subcategory) {
+                    case "010":
+                    case "020":
+                        n2 = randomNumberBetween(10, 20, "linear");
+                        break;
+                }
                 return n2;
             }
 
             createQuestion = () => {
                 var number1 = this.createNumber1();
                 var number2 = this.createNumber2();
-                this.setState({
-                    num1: number1,
-                    num2: number2,
-                    expected: number1 * number2
-                });
-            }
-
-            updateResponse = event => {
-                this.setState({
-                    response: event.target.value
-                })
-            }
-
-            submitAnswer = event => {
-                if (event.key === 'Enter') {
-                    const answer = parseInt(this.state.response);
-                    const status = (answer === this.state.expected);
-                    const mark = status ? '<span className="badge badge-success">T</span>' : '<span className="badge badge-danger">F</span>';
-                    const formula = `<div> ${mark} ${this.printQuestion()} ${this.state.response} </div>`;
-
-                    this.props.onHistoryUpdate(status, formula);
-
-                    if (status) {
-                        this.createQuestion();
-                        this.state.response = '';
-                    }
+                if (randomSwitch()) {
+                    this.setState({
+                        num1: number2,
+                        num2: number1,
+                        expected: number1 * number2
+                    });
+                } else {
+                    this.setState({
+                        num1: number1,
+                        num2: number2,
+                        expected: number1 * number2
+                    });
                 }
             }
 
             printQuestion = () => {
                 return `${this.state.num1} x ${this.state.num2} = `;
-            }
-
-            render() {
-                return (
-                    <div className="alert alert-info" role="alert">
-                        <p>Multiplication</p>
-                        <label> {this.printQuestion()} &nbsp; </label>
-                        <input type="number" onKeyPress={this.submitAnswer} onChange={this.updateResponse} value={this.state.response} placeholder="Answer" />
-                    </div>
-                );
             }
         }
 
@@ -371,7 +510,7 @@
             }
 
             render() {
-                var Component = Babel.transform(`<div>${this.props.history}</div>`, {presets: ["react"]}).code;
+                var Component = Babel.transform(`<div>${this.props.history}</div>`, { presets: ["react"] }).code;
                 return (
                     <div className="alert alert-success" role="alert" id="history-list">
                         <p>Accomplishments: {this.props.score} / {this.props.finished} / {this.props.total} </p>
