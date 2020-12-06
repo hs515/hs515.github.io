@@ -129,6 +129,7 @@
                                     <AdditionDropdown category="addition" description="Addition" onCategoryChange={this.props.onCategoryChange} />
                                     <SubtractionDropdown category="subtraction" description="Subtraction" onCategoryChange={this.props.onCategoryChange} />
                                     <MultiplicationDropdown category="multiplication" description="Multiplication" onCategoryChange={this.props.onCategoryChange} />
+                                    <DivisionDropdown category="division" description="Division" onCategoryChange={this.props.onCategoryChange} />
                                 </ul>
                             </div>
                         </nav>
@@ -175,18 +176,40 @@
                     <li className="nav-item dropdown active">
                         <a className="nav-link dropdown-toggle" href="#" data-toggle="dropdown"> {this.props.description} </a>
                         <ul className="dropdown-menu">
-                            <DropdownItem category={this.props.category} subcategory="000" description="Q: ? x ?" onCategoryChange={this.props.onCategoryChange} />
-                            <DropdownItem category={this.props.category} subcategory="001" description="Q: 1 x ?" onCategoryChange={this.props.onCategoryChange} />
-                            <DropdownItem category={this.props.category} subcategory="002" description="Q: 2 x ?" onCategoryChange={this.props.onCategoryChange} />
-                            <DropdownItem category={this.props.category} subcategory="003" description="Q: 3 x ?" onCategoryChange={this.props.onCategoryChange} />
-                            <DropdownItem category={this.props.category} subcategory="004" description="Q: 4 x ?" onCategoryChange={this.props.onCategoryChange} />
-                            <DropdownItem category={this.props.category} subcategory="005" description="Q: 5 x ?" onCategoryChange={this.props.onCategoryChange} />
-                            <DropdownItem category={this.props.category} subcategory="006" description="Q: 6 x ?" onCategoryChange={this.props.onCategoryChange} />
-                            <DropdownItem category={this.props.category} subcategory="007" description="Q: 7 x ?" onCategoryChange={this.props.onCategoryChange} />
-                            <DropdownItem category={this.props.category} subcategory="008" description="Q: 8 x ?" onCategoryChange={this.props.onCategoryChange} />
-                            <DropdownItem category={this.props.category} subcategory="009" description="Q: 9 x ?" onCategoryChange={this.props.onCategoryChange} />
-                            <DropdownItem category={this.props.category} subcategory="010" description="Q: ? x 1?" onCategoryChange={this.props.onCategoryChange} />
-                            <DropdownItem category={this.props.category} subcategory="020" description="Q: 1? x 1?" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="000" description="Q: ? × ?" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="001" description="Q: 1 × ?" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="002" description="Q: 2 × ?" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="003" description="Q: 3 × ?" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="004" description="Q: 4 × ?" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="005" description="Q: 5 × ?" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="006" description="Q: 6 × ?" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="007" description="Q: 7 × ?" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="008" description="Q: 8 × ?" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="009" description="Q: 9 × ?" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="010" description="Q: ? × 1?" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="020" description="Q: 1? × 1?" onCategoryChange={this.props.onCategoryChange} />
+                        </ul>
+                    </li>
+                );
+            }
+        }
+
+        class DivisionDropdown extends React.Component {
+            render() {
+                return (
+                    <li className="nav-item dropdown active">
+                        <a className="nav-link dropdown-toggle" href="#" data-toggle="dropdown"> {this.props.description} </a>
+                        <ul className="dropdown-menu">
+                            <DropdownItem category={this.props.category} subcategory="000" description="Q: ? ÷ ?" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="001" description="Q: ? ÷ 1" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="002" description="Q: ? ÷ 2" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="003" description="Q: ? ÷ 3" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="004" description="Q: ? ÷ 4" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="005" description="Q: ? ÷ 5" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="006" description="Q: ? ÷ 6" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="007" description="Q: ? ÷ 7" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="008" description="Q: ? ÷ 8" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="009" description="Q: ? ÷ 9" onCategoryChange={this.props.onCategoryChange} />
                         </ul>
                     </li>
                 );
@@ -198,8 +221,8 @@
                 return (
                     <li><a className="dropdown-item" href=""> {this.props.description} &raquo; </a>
                         <ul className="submenu dropdown-menu">
-                            <DropdownItem category={this.props.category} subcategory="011" description="Q: 11 x ?" onCategoryChange={this.props.onCategoryChange} />
-                            <DropdownItem category={this.props.category} subcategory="012" description="Q: 12 x ?" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="011" description="Q: 11 × ?" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="012" description="Q: 12 × ?" onCategoryChange={this.props.onCategoryChange} />
                         </ul>
                     </li>
                 );
@@ -252,11 +275,17 @@
                                 <MultiplicationQuestion subcategory={this.props.subcategory} onHistoryUpdate={this.props.onHistoryUpdate} description={description} key={this.props.subcategory} />
                             );
                             break;
+                        case "division":
+                            description = `Division ${this.props.subcategory}`;
+                            return (
+                                <DivisionQuestion subcategory={this.props.subcategory} onHistoryUpdate={this.props.onHistoryUpdate} description={description} key={this.props.subcategory} />
+                            );
+                            break;
                         default:
                             return (
-                                <h3 className="alert alert-warning" role="alert">
-                                    Please select a question to start!
-                                </h3>
+                                <div className="alert alert-warning" role="alert">
+                                    <h3>Please select a question to start!</h3>
+                                </div>
                             );
                             break;
                     }
@@ -284,18 +313,18 @@
             submitAnswer = event => {
                 if (event.key === 'Enter') {
                     if (isNumeric(this.state.response)) {
-                    const answer = parseInt(this.state.response);
-                    const status = (answer === this.state.expected);
-                    const mark = status ? '<span className="badge badge-success">T</span>' : '<span className="badge badge-danger">F</span>';
-                    const formula = `<div> ${mark} ${this.printQuestion()} ${this.state.response} </div>`;
+                        const answer = parseInt(this.state.response);
+                        const status = (answer === this.state.expected);
+                        const mark = status ? '<span className="badge badge-success">T</span>' : '<span className="badge badge-danger">F</span>';
+                        const formula = `<div> ${mark} ${this.printQuestion()} ${this.state.response} </div>`;
 
-                    this.props.onHistoryUpdate(status, formula);
-                    this.state.response = '';
+                        this.props.onHistoryUpdate(status, formula);
+                        this.state.response = '';
 
-                    if (status) {
-                        this.createQuestion();
+                        if (status) {
+                            this.createQuestion();
+                        }
                     }
-                }
                 }
             }
 
@@ -369,8 +398,8 @@
 
                 var number1 = this.createNumber1();
                 var number2 = this.createNumber1()
-                this.state.num1 = (number1>number2) ? number1 : number2;
-                this.state.num2 = (number1>number2) ? number2 : number1;
+                this.state.num1 = (number1 > number2) ? number1 : number2;
+                this.state.num2 = (number1 > number2) ? number2 : number1;
                 this.state.expected = this.state.num1 - this.state.num2;
             }
 
@@ -500,7 +529,75 @@
             }
 
             printQuestion = () => {
-                return `${this.state.num1} x ${this.state.num2} = `;
+                return `${this.state.num1} × ${this.state.num2} = `;
+            }
+        }
+
+        class DivisionQuestion extends TwoNumberQuestion {
+            constructor(props) {
+                super(props);
+
+                var number1 = this.createNumber1();
+                var number2 = this.createNumber2()
+                this.state.num1 = number1 * number2;
+                this.state.num2 = number1;
+                this.state.expected = number2;
+            }
+
+            createNumber1 = () => {
+                var n1 = randomNumberBetween(2, 9, "linear");
+                switch (this.props.subcategory) {
+                    case "000":
+                        n1 = randomNumberBetween(2, 9, "linear");
+                        break;
+                    case "001":
+                        n1 = 1;
+                        break;
+                    case "002":
+                        n1 = 2;
+                        break;
+                    case "003":
+                        n1 = 3;
+                        break;
+                    case "004":
+                        n1 = 4;
+                        break;
+                    case "005":
+                        n1 = 5;
+                        break;
+                    case "006":
+                        n1 = 6;
+                        break;
+                    case "007":
+                        n1 = 7;
+                        break;
+                    case "008":
+                        n1 = 8;
+                        break;
+                    case "009":
+                        n1 = 9;
+                        break;
+                }
+                return n1;
+            }
+
+            createNumber2 = () => {
+                var n2 = randomNumberBetween(2, 9, "linear");
+                return n2;
+            }
+
+            createQuestion = () => {
+                var number1 = this.createNumber1();
+                var number2 = this.createNumber2();
+                this.setState({
+                    num1: number1 * number2,
+                    num2: number1,
+                    expected: number2
+                });
+            }
+
+            printQuestion = () => {
+                return `${this.state.num1} ÷ ${this.state.num2} = `;
             }
         }
 
