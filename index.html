@@ -93,6 +93,10 @@
                 margin-top: 0;
                 margin-bottom: 0;
             }
+
+            .answer {
+                width: 150px;
+            }
         }
     </style>
 </head>
@@ -364,7 +368,7 @@
                     <div className="alert alert-info" role="alert">
                         <p> {this.props.description}</p>
                         <label> {this.printQuestion()} &nbsp; </label>
-                        <input type="number" onKeyPress={this.submitAnswer} onChange={this.updateResponse} value={this.state.response} placeholder="Answer" />
+                        <input className="answer" type="number" onKeyPress={this.submitAnswer} onChange={this.updateResponse} value={this.state.response} placeholder="Answer" />
                     </div>
                 );
             }
