@@ -159,10 +159,28 @@
                                     <SubtractionDropdown category="subtraction" description="Subtraction" onCategoryChange={this.props.onCategoryChange} />
                                     <MultiplicationDropdown category="multiplication" description="Multiplication" onCategoryChange={this.props.onCategoryChange} />
                                     <DivisionDropdown category="division" description="Division" onCategoryChange={this.props.onCategoryChange} />
+                                    <Feedback description="Feedback" />
                                 </ul>
                             </div>
                         </nav>
                     </div>
+                );
+            }
+        }
+
+        class Feedback extends React.Component {
+            render() {
+                return (
+                    <li className="nav-item dropdown">
+                        <a className="nav-link dropdown-toggle" href="#" data-toggle="dropdown"> {this.props.description} </a>
+                        <ul className="dropdown-menu">
+                            <li className="dropdown-item">
+                                Email feedbacks to<br />
+                                <a href="mailto:haoh.shen@gmail.com"> haoh.shen@gmail.com</a>.<br />
+                                Appreciated!
+                            </li>
+                        </ul>
+                    </li>
                 );
             }
         }
