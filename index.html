@@ -639,13 +639,54 @@
         class AnswerList extends React.Component {
             constructor(props) {
                 super(props);
+                this.state = {
+                    startTime: new Date(),
+                    elapsed: 0
+                }
+            }
+
+            componentDidMount() {
+                this.timerID = setInterval(
+                    () => this.tick(),
+                    1000
+                );
+            }
+
+            componentWillUnmount() {
+                clearInterval(this.timerID);
+            }
+
+            tick() {
+                if ((this.props.finished > 0) && (this.props.finished < this.props.total)) {
+                    let endTime = new Date();
+                    let elapsed = endTime.getTime() - this.state.startTime;
+                    this.setState({
+                        elapsed: elapsed
+                    });
+                } else {
+                    this.setState({
+                        startTime: new Date()
+                    });
+                }
+            }
+
+            toTimeString = () => {
+                var sec_num = Math.floor(this.state.elapsed / 1000);
+                var hours = Math.floor(sec_num / 3600);
+                var minutes = Math.floor((sec_num - (hours * 3600)) / 60);
+                var seconds = sec_num - (hours * 3600) - (minutes * 60);
+
+                if (hours < 10) { hours = "0" + hours; }
+                if (minutes < 10) { minutes = "0" + minutes; }
+                if (seconds < 10) { seconds = "0" + seconds; }
+                return hours + ':' + minutes + ':' + seconds;
             }
 
             render() {
                 var Component = Babel.transform(`<div>${this.props.history}</div>`, { presets: ["react"] }).code;
                 return (
                     <div className="alert alert-success" role="alert" id="history-list">
-                        <p>Accomplishments: {this.props.score} / {this.props.finished} / {this.props.total} </p>
+                        Accomplished: {this.props.score} / {this.props.finished} / {this.props.total} &nbsp; &nbsp; &nbsp; &nbsp; Elapsed: {this.toTimeString()}
                         {eval(Component)}
                     </div>
                 );
