@@ -40,15 +40,9 @@
             }
         }
 
-        @media (min-width: 724px) {
-            html {
-                font-size: 27px;
-            }
-        }
-
         @media (max-width: 623px) {
             html {
-                font-size: 24px;
+                font-size: 27px;
             }
         }
 
@@ -94,8 +88,8 @@
                 margin-bottom: 0;
             }
 
-            .answer {
-                width: 150px;
+            .input-group {
+                width: 850px;
             }
         }
     </style>
@@ -345,20 +339,28 @@
                 })
             }
 
-            submitAnswer = event => {
+            onKeyPress = (event) => {
                 if (event.key === 'Enter') {
-                    if (isNumeric(this.state.response)) {
-                        const answer = parseInt(this.state.response);
-                        const status = (answer === this.state.expected);
-                        const mark = status ? '<span className="badge badge-success">T</span>' : '<span className="badge badge-danger">F</span>';
-                        const formula = `<div> ${mark} ${this.printQuestion()} ${this.state.response} </div>`;
+                    this.submitAnswer();
+                }
+            }
 
-                        this.props.onHistoryUpdate(status, formula);
-                        this.state.response = '';
+            onClick = (event) => {
+                this.submitAnswer();
+            }
 
-                        if (status) {
-                            this.createQuestion();
-                        }
+            submitAnswer = () => {
+                if (isNumeric(this.state.response)) {
+                    const answer = parseInt(this.state.response);
+                    const status = (answer === this.state.expected);
+                    const mark = status ? '<span className="badge badge-success">T</span>' : '<span className="badge badge-danger">F</span>';
+                    const formula = `<div> ${mark} ${this.printQuestion()} ${this.state.response} </div>`;
+
+                    this.props.onHistoryUpdate(status, formula);
+                    this.state.response = '';
+
+                    if (status) {
+                        this.createQuestion();
                     }
                 }
             }
@@ -367,8 +369,15 @@
                 return (
                     <div className="alert alert-info" role="alert">
                         <p> {this.props.description}</p>
-                        <label> {this.printQuestion()} &nbsp; </label>
-                        <input className="answer" type="number" onKeyPress={this.submitAnswer} onChange={this.updateResponse} value={this.state.response} placeholder="Answer" />
+                        <div className="input-group mb-3">
+                            <div className="input-group-prepend">
+                                <span className="input-group-text" id="inputGroup-sizing-default"> {this.printQuestion()} </span>
+                            </div>
+                            <input type="number" className="form-control" onKeyPress={this.onKeyPress} onChange={this.updateResponse} value={this.state.response} placeholder="Input your answer here" aria-label="Answer" aria-describedby="button-submit" />
+                            <div className="input-group-append">
+                                <button className="btn btn-outline-secondary" type="button" id="button-submit" onClick={this.onClick}>Submit</button>
+                            </div>
+                        </div>
                     </div>
                 );
             }
