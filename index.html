@@ -371,10 +371,18 @@
                 if (isNumeric(this.state.response)) {
                     const answer = parseInt(this.state.response);
                     const status = (answer === this.state.expected);
-                    const mark = status ? '<span className="badge badge-success">T</span>' : '<span className="badge badge-danger">F</span>';
-                    const formula = `<div> ${mark} ${this.printQuestion()} ${this.state.response} </div>`;
+                    const trueMark = '<span className="badge badge-success">T</span>';
+                    const falseMark = '<span className="badge badge-danger">F</span>';
+                    const formula = `${this.printQuestion()} ${this.state.response}`;
 
-                    this.props.onHistoryUpdate(status, formula);
+                    var message;
+                    if (status) {
+                        message = `<div> ${trueMark} ${formula} </div>`;
+                    } else {
+                        message = `<div> ${falseMark} ${formula} &nbsp; &nbsp; &nbsp; &nbsp; ${trueMark} ${this.state.expected} </div>`;
+                    }
+
+                    this.props.onHistoryUpdate(status, message);
                     this.state.response = '';
 
                     if (status) {
@@ -432,21 +440,24 @@
             }
 
             createQuestion = () => {
-                var number1 = this.createNumber1();
-                var number2 = this.createNumber1();
-                if (randomSwitch()) {
-                    this.setState({
-                        num1: number2,
-                        num2: number1,
-                        expected: number1 + number2
-                    });
-                } else {
-                    this.setState({
-                        num1: number1,
-                        num2: number2,
-                        expected: number1 + number2
-                    });
+                do {
+                    var number1 = this.createNumber1();
+                    var number2 = this.createNumber1();
+                    if (randomSwitch()) {
+                        var num1 = number2;
+                        var num2 = number1;
+                    } else {
+                        num1 = number1;
+                        num2 = number2;
+                    }
                 }
+                while ((num1 == this.state.num1) && (num2 == this.state.num2));
+
+                this.setState({
+                    num1: num1,
+                    num2: num2,
+                    expected: num1 + num2
+                });
             }
 
             printQuestion = () => {
@@ -485,21 +496,24 @@
             }
 
             createQuestion = () => {
-                var number1 = this.createNumber1();
-                var number2 = this.createNumber1();
-                if (number1 > number2) {
-                    this.setState({
-                        num1: number1,
-                        num2: number2,
-                        expected: number1 - number2
-                    });
-                } else {
-                    this.setState({
-                        num1: number2,
-                        num2: number1,
-                        expected: number2 - number1
-                    });
+                do {
+                    var number1 = this.createNumber1();
+                    var number2 = this.createNumber1();
+                    if (number1 < number2) {
+                        var num1 = number2;
+                        var num2 = number1;
+                    } else {
+                        num1 = number1;
+                        num2 = number2;
+                    }
                 }
+                while ((num1 == this.state.num1) && (num2 == this.state.num2));
+
+                this.setState({
+                    num1: num1,
+                    num2: num2,
+                    expected: num1 - num2
+                });
             }
 
             printQuestion = () => {
@@ -573,21 +587,24 @@
             }
 
             createQuestion = () => {
-                var number1 = this.createNumber1();
-                var number2 = this.createNumber2();
-                if (randomSwitch()) {
-                    this.setState({
-                        num1: number2,
-                        num2: number1,
-                        expected: number1 * number2
-                    });
-                } else {
-                    this.setState({
-                        num1: number1,
-                        num2: number2,
-                        expected: number1 * number2
-                    });
+                do {
+                    var number1 = this.createNumber1();
+                    var number2 = this.createNumber2();
+                    if (randomSwitch()) {
+                        var num1 = number2;
+                        var num2 = number1;
+                    } else {
+                        num1 = number1;
+                        num2 = number2;
+                    }
                 }
+                while ((num1 == this.state.num1) && (num2 == this.state.num2));
+
+                this.setState({
+                    num1: num1,
+                    num2: num2,
+                    expected: num1 * num2
+                });
             }
 
             printQuestion = () => {
@@ -649,12 +666,16 @@
             }
 
             createQuestion = () => {
-                var number1 = this.createNumber1();
-                var number2 = this.createNumber2();
+                do {
+                    var num1 = this.createNumber1();
+                    var num2 = this.createNumber2();
+                }
+                while ((num1 == this.state.num1) && (num2 == this.state.num2));
+
                 this.setState({
-                    num1: number1 * number2,
-                    num2: number1,
-                    expected: number2
+                    num1: num1 * num2,
+                    num2: num1,
+                    expected: num2
                 });
             }
 
