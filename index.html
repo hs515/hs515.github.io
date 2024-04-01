@@ -107,7 +107,7 @@
                     category: undefined,
                     subcategory: undefined,
                     history: '',
-                    total: 100,
+                    total: 20,
                     score: 0,
                     finished: 0
                 };
@@ -195,6 +195,7 @@
                             <DropdownItem category={this.props.category} subcategory="010" description="Q: Add within 10" onCategoryChange={this.props.onCategoryChange} />
                             <DropdownItem category={this.props.category} subcategory="020" description="Q: Add within 20" onCategoryChange={this.props.onCategoryChange} />
                             <DropdownItem category={this.props.category} subcategory="100" description="Q: Add within 100" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="200" description="Q: Add within 1000" onCategoryChange={this.props.onCategoryChange} />
                         </ul>
                     </li>
                 );
@@ -211,6 +212,7 @@
                             <DropdownItem category={this.props.category} subcategory="010" description="Q: Subtract within 10" onCategoryChange={this.props.onCategoryChange} />
                             <DropdownItem category={this.props.category} subcategory="020" description="Q: Subtract within 20" onCategoryChange={this.props.onCategoryChange} />
                             <DropdownItem category={this.props.category} subcategory="100" description="Q: Subtract within 100" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="200" description="Q: Subtract within 1000" onCategoryChange={this.props.onCategoryChange} />
                         </ul>
                     </li>
                 );
@@ -435,6 +437,9 @@
                     case "100":
                         n1 = randomNumberBetween(10, 100, "linear");
                         break;
+                    case "200":
+                        n1 = randomNumberBetween(10, 1000, "linear");
+                        break;
                 }
                 return n1;
             }
@@ -490,6 +495,9 @@
                         break;
                     case "100":
                         n1 = randomNumberBetween(10, 100, "linear");
+                        break;
+                    case "200":
+                        n1 = randomNumberBetween(10, 1000, "linear");
                         break;
                 }
                 return n1;
