@@ -702,12 +702,9 @@
             createNumber2 = () => {
                 var n2 = randomNumberBetween(2, 9, "linear");
                 switch (this.props.subcategory) {
+                    case "010":
                     case "020":
-                        n2 = randomNumberBetween(10, 20, "linear");
-                        break;
                     case "100":
-                        n2 = randomNumberBetween(10, 100, "linear");
-                        break;
                     case "200":
                     case "201":
                         n2 = randomNumberBetween(10, 1000, "linear");
