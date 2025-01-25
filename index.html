@@ -237,6 +237,7 @@
                             <DropdownItem category={this.props.category} subcategory="009" description="Q: 9 × ?" onCategoryChange={this.props.onCategoryChange} />
                             <DropdownItem category={this.props.category} subcategory="010" description="Q: ? × 1?" onCategoryChange={this.props.onCategoryChange} />
                             <DropdownItem category={this.props.category} subcategory="020" description="Q: 1? × 1?" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="201" description="Q: ? × ???" onCategoryChange={this.props.onCategoryChange} />
                             <DropdownItem category={this.props.category} subcategory="100" description="Q: Multiply within 100" onCategoryChange={this.props.onCategoryChange} />
                             <DropdownItem category={this.props.category} subcategory="200" description="Q: Multiply within 1000" onCategoryChange={this.props.onCategoryChange} />
                         </ul>
@@ -261,6 +262,7 @@
                             <DropdownItem category={this.props.category} subcategory="007" description="Q: ? ÷ 7" onCategoryChange={this.props.onCategoryChange} />
                             <DropdownItem category={this.props.category} subcategory="008" description="Q: ? ÷ 8" onCategoryChange={this.props.onCategoryChange} />
                             <DropdownItem category={this.props.category} subcategory="009" description="Q: ? ÷ 9" onCategoryChange={this.props.onCategoryChange} />
+                            <DropdownItem category={this.props.category} subcategory="010" description="Q: Divide within 10" onCategoryChange={this.props.onCategoryChange} />
                             <DropdownItem category={this.props.category} subcategory="020" description="Q: Divide within 20" onCategoryChange={this.props.onCategoryChange} />
                             <DropdownItem category={this.props.category} subcategory="100" description="Q: Divide within 100" onCategoryChange={this.props.onCategoryChange} />
                             <DropdownItem category={this.props.category} subcategory="200" description="Q: Divide within 1000" onCategoryChange={this.props.onCategoryChange} />
@@ -549,6 +551,7 @@
                 var n1 = randomNumberBetween(4, 9, "linear");
                 switch (this.props.subcategory) {
                     case "000":
+                    case "201":
                         n1 = randomNumberBetween(2, 9, "sqrt");
                         break;
                     case "001":
@@ -602,10 +605,11 @@
                         n2 = randomNumberBetween(10, 20, "linear");
                         break;
                     case "100":
-                        n2 = randomNumberBetween(1, 100, "linear");
+                        n2 = randomNumberBetween(10, 100, "linear");
                         break;
                     case "200":
-                        n2 = randomNumberBetween(1, 1000, "linear");
+                    case "201":
+                        n2 = randomNumberBetween(10, 1000, "linear");
                         break;
                 }
                 return n2;
@@ -652,6 +656,7 @@
                 var n1 = randomNumberBetween(2, 9, "linear");
                 switch (this.props.subcategory) {
                     case "000":
+                    case "010":
                         n1 = randomNumberBetween(2, 9, "linear");
                         break;
                     case "001":
@@ -701,10 +706,11 @@
                         n2 = randomNumberBetween(10, 20, "linear");
                         break;
                     case "100":
-                        n2 = randomNumberBetween(1, 100, "linear");
+                        n2 = randomNumberBetween(10, 100, "linear");
                         break;
                     case "200":
-                        n2 = randomNumberBetween(1, 1000, "linear");
+                    case "201":
+                        n2 = randomNumberBetween(10, 1000, "linear");
                         break;
                 }
                 return n2;
