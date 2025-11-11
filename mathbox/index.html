@@ -96,10 +96,10 @@
 </head>
 
 <body>
-    <div id="app" />
+    <div id="app" /></div>
 
+    <!-- Main App Component -->
     <script type="text/babel">
-
         class App extends React.Component {
             constructor(props) {
                 super(props);
@@ -143,7 +143,10 @@
                 );
             }
         }
+    </script>
 
+    <!-- Navigation Components -->
+    <script type="text/babel">
         class NavigatorBar extends React.Component {
             render() {
                 return (
@@ -296,7 +299,10 @@
                 );
             }
         }
+    </script>
 
+    <!-- Question Components -->
+    <script type="text/babel">
         class Question extends React.Component {
             constructor(props) {
                 super(props);
@@ -731,7 +737,10 @@
                 return `${this.state.num1} ÷ ${this.state.num2} = `;
             }
         }
+    </script>
 
+    <!-- Answer Components -->
+    <script type="text/babel">
         class AnswerList extends React.Component {
             constructor(props) {
                 super(props);
@@ -788,8 +797,11 @@
                 );
             }
         }
+    </script>
 
-        ReactDOM.render(<App />, document.querySelector("#app"));
+    <!-- App Initialization -->
+    <script type="text/babel">
+        ReactDOM.render(React.createElement(App), document.querySelector("#app"));
     </script>
 </body>
 
