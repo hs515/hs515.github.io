@@ -115,6 +115,22 @@ header h1 {
     color: #aaa;
 }
 
+.measurement-item {
+    padding: 0.5rem;
+    border: 1px solid #404040;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    background-color: #2d2d2d;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.measurement-item:hover {
+    background-color: #383838;
+}
+
 .placeholder {
     padding: 2rem;
     text-align: center;
@@ -125,6 +141,49 @@ header h1 {
     flex: 1;
     display: flex;
     flex-direction: column;
+}
+
+.viewer-and-details {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+/* Default: details at bottom (small screens) */
+@media (max-width: 1200px) {
+    .viewer-and-details {
+        flex-direction: column;
+    }
+    
+    .dicom-viewer {
+        flex: 1;
+        min-height: 0;
+    }
+    
+    .image-details {
+        height: 250px;
+        border-top: 1px solid #404040;
+        border-right: none;
+    }
+}
+
+/* Large screens: details on the right */
+@media (min-width: 1201px) {
+    .viewer-and-details {
+        flex-direction: row;
+    }
+    
+    .dicom-viewer {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .image-details {
+        width: 350px;
+        height: auto;
+        border-left: 1px solid #404040;
+        border-top: none;
+    }
 }
 
 .viewer-controls {

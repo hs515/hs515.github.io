@@ -15,6 +15,12 @@ class DicomViewer {
             zoom: null
         };
         
+        // Measurement state
+        this.measurementCanvas = null;
+        this.measurementCtx = null;
+        this.currentMeasurement = null;
+        this.isDrawing = false;
+        
         this.init();
     }
 
@@ -85,6 +91,10 @@ class DicomViewer {
             this.setActiveTool('zoom');
         });
 
+        document.getElementById('frameSlider').addEventListener('click', () => {
+            this.setActiveTool('frameSlider');
+        });
+
         document.getElementById('resetView').addEventListener('click', () => {
             this.resetView();
         });
@@ -147,6 +157,11 @@ class DicomViewer {
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             this.handleKeyboard(e);
+        });
+
+        // Window resize handler
+        window.addEventListener('resize', () => {
+            this.resizeMeasurementCanvas();
         });
     }
 
@@ -551,6 +566,12 @@ class DicomViewer {
             cornerstone.displayImage(this.element, image);
             console.log('Image displayed successfully');
             
+            // Resize measurement canvas to match
+            this.resizeMeasurementCanvas();
+            
+            // Clear measurements for new image
+            this.redrawMeasurements();
+            
             // Enable W/L tool AFTER image is successfully displayed
             if (!this.toolsEnabled) {
                 // Wait a bit for the display to complete
@@ -684,10 +705,27 @@ class DicomViewer {
             overlay.className = 'viewport-overlay';
             this.element.appendChild(overlay);
         }
+        
+        // Create canvas overlay for measurements
+        if (!this.measurementCanvas) {
+            this.measurementCanvas = document.createElement('canvas');
+            this.measurementCanvas.id = 'measurement-canvas';
+            this.measurementCanvas.style.position = 'absolute';
+            this.measurementCanvas.style.top = '0';
+            this.measurementCanvas.style.left = '0';
+            this.measurementCanvas.style.pointerEvents = 'none';
+            this.measurementCanvas.style.zIndex = '10';
+            this.element.appendChild(this.measurementCanvas);
+            this.measurementCtx = this.measurementCanvas.getContext('2d');
+            
+            // Resize canvas to match element
+            this.resizeMeasurementCanvas();
+        }
 
         // Listen for viewport changes to update the overlay
         this.element.addEventListener('cornerstoneimagerendered', (e) => {
             this.updateViewportOverlay(e);
+            this.redrawMeasurements();
         });
         
         // Add manual mouse handling for all tools
@@ -700,6 +738,22 @@ class DicomViewer {
         if (viewport) {
             this.updateViewportOverlay({ detail: { viewport } });
         }
+
+        // Watch for element size changes
+        if (typeof ResizeObserver !== 'undefined') {
+            const resizeObserver = new ResizeObserver(() => {
+                this.resizeMeasurementCanvas();
+            });
+            resizeObserver.observe(this.element);
+        }
+    }
+    
+    resizeMeasurementCanvas() {
+        if (this.measurementCanvas && this.element) {
+            this.measurementCanvas.width = this.element.clientWidth;
+            this.measurementCanvas.height = this.element.clientHeight;
+            this.redrawMeasurements();
+        }
     }
 
     setupMouseHandlers() {
@@ -711,13 +765,60 @@ class DicomViewer {
         let startPanX = 0;
         let startPanY = 0;
         let startScale = 0;
+        let draggedPoint = null; // Track which point is being dragged
         
         const mouseDown = (e) => {
+            const rect = this.element.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
             // Middle mouse button (1) for Pan/Zoom, Left (0) or Middle (1) for W/L
             const isMiddleButton = e.button === 1;
             const isLeftButton = e.button === 0;
             
-            if ((this.currentTool === 'pan' || this.currentTool === 'zoom') && isMiddleButton) {
+            // Check if clicking near an existing measurement point to drag it
+            if (['length', 'angle', 'area', 'probe'].includes(this.currentTool) && isLeftButton) {
+                // Check if clicking on current measurement point
+                if (this.currentMeasurement) {
+                    draggedPoint = this.findNearestPoint(x, y, this.currentMeasurement);
+                    if (draggedPoint !== null) {
+                        this.isDrawing = true;
+                        e.preventDefault();
+                        return;
+                    }
+                }
+                
+                // Check if clicking on existing completed measurement point
+                for (let i = this.measurements.length - 1; i >= 0; i--) {
+                    if (this.measurements[i].imageIndex === this.currentIndex) {
+                        const pointIndex = this.findNearestPoint(x, y, this.measurements[i]);
+                        if (pointIndex !== null) {
+                            this.currentMeasurement = this.measurements[i];
+                            this.measurements.splice(i, 1); // Remove from completed list
+                            draggedPoint = pointIndex;
+                            this.isDrawing = true;
+                            e.preventDefault();
+                            return;
+                        }
+                    }
+                }
+                
+                // No existing point clicked - create new measurement for non-angle and non-area tools
+                if (this.currentTool !== 'angle' && this.currentTool !== 'area') {
+                    this.isDrawing = true;
+                    const imageCoords = this.canvasToImageCoords({ x, y });
+                    this.currentMeasurement = {
+                        tool: this.currentTool,
+                        points: [{ x, y }],
+                        imagePoints: [imageCoords],
+                        imageIndex: this.currentIndex
+                    };
+                    e.preventDefault();
+                    return;
+                }
+            }
+            
+            if ((this.currentTool === 'pan' || this.currentTool === 'zoom' || this.currentTool === 'frameSlider') && isMiddleButton) {
                 isDragging = true;
                 startX = e.pageX;
                 startY = e.pageY;
@@ -728,6 +829,14 @@ class DicomViewer {
                 startScale = viewport.scale;
                 
                 console.log(`${this.currentTool} drag started`);
+                e.preventDefault();
+            } else if (this.currentTool === 'frameSlider' && isLeftButton) {
+                // Frame slider also works with left button
+                isDragging = true;
+                startX = e.pageX;
+                startY = e.pageY;
+                
+                console.log('Frame slider drag started');
                 e.preventDefault();
             } else if (this.currentTool === 'windowLevel' && (isLeftButton || isMiddleButton)) {
                 isDragging = true;
@@ -744,6 +853,34 @@ class DicomViewer {
         };
         
         const mouseMove = (e) => {
+            const rect = this.element.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Handle measurement point dragging
+            if (this.isDrawing && this.currentMeasurement && draggedPoint !== null) {
+                this.currentMeasurement.points[draggedPoint] = { x, y };
+                if (this.currentMeasurement.imagePoints) {
+                    this.currentMeasurement.imagePoints[draggedPoint] = this.canvasToImageCoords({ x, y });
+                }
+                this.redrawMeasurements();
+                e.preventDefault();
+                return;
+            }
+            
+            // Handle measurement drawing
+            if (this.isDrawing && this.currentMeasurement) {
+                if (this.currentMeasurement.tool === 'length') {
+                    this.currentMeasurement.points[1] = { x, y };
+                    if (this.currentMeasurement.imagePoints) {
+                        this.currentMeasurement.imagePoints[1] = this.canvasToImageCoords({ x, y });
+                    }
+                }
+                this.redrawMeasurements();
+                e.preventDefault();
+                return;
+            }
+            
             if (isDragging) {
                 const deltaX = e.pageX - startX;
                 const deltaY = e.pageY - startY;
@@ -766,14 +903,70 @@ class DicomViewer {
                     // Zoom: vertical movement controls zoom
                     const zoomDelta = -deltaY * 0.01;
                     viewport.scale = Math.max(0.1, Math.min(10, startScale + zoomDelta));
+                } else if (this.currentTool === 'frameSlider') {
+                    // Frame slider: vertical movement changes frames (down = next, up = previous)
+                    if (this.currentImageIds.length > 1) {
+                        const sensitivity = 10; // pixels per frame
+                        const frameDelta = Math.floor(deltaY / sensitivity);
+                        const targetFrame = Math.max(0, Math.min(this.currentImageIds.length - 1, this.currentIndex + frameDelta));
+                        
+                        if (targetFrame !== this.currentIndex) {
+                            this.displayImage(targetFrame);
+                        }
+                        e.preventDefault();
+                        return; // Don't update viewport for frame slider
+                    }
                 }
                 
-                cornerstone.setViewport(this.element, viewport);
+                if (this.currentTool !== 'frameSlider') {
+                    cornerstone.setViewport(this.element, viewport);
+                }
                 e.preventDefault();
             }
         };
         
-        const stopDragging = (e) => {
+        const mouseUp = (e) => {
+            const rect = this.element.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Complete measurement dragging
+            if (this.isDrawing && draggedPoint !== null) {
+                this.measurements.push(this.currentMeasurement);
+                this.currentMeasurement = null;
+                draggedPoint = null;
+                this.isDrawing = false;
+                this.updateMeasurementsList();
+                this.redrawMeasurements();
+                e.preventDefault();
+                return;
+            }
+            
+            // Complete measurement
+            if (this.isDrawing && this.currentMeasurement) {
+                if (this.currentMeasurement.tool === 'length') {
+                    const imageCoords = this.canvasToImageCoords({ x, y });
+                    this.currentMeasurement.points[1] = { x, y };
+                    this.currentMeasurement.imagePoints[1] = imageCoords;
+                    this.measurements.push(this.currentMeasurement);
+                    this.isDrawing = false;
+                    this.currentMeasurement = null;
+                    this.updateMeasurementsList();
+                    this.redrawMeasurements();
+                } else if (this.currentMeasurement.tool === 'probe') {
+                    const imageCoords = this.canvasToImageCoords({ x, y });
+                    this.currentMeasurement.points[0] = { x, y };
+                    this.currentMeasurement.imagePoints[0] = imageCoords;
+                    this.measurements.push(this.currentMeasurement);
+                    this.isDrawing = false;
+                    this.currentMeasurement = null;
+                    this.updateMeasurementsList();
+                    this.redrawMeasurements();
+                }
+                e.preventDefault();
+                return;
+            }
+            
             if (isDragging) {
                 isDragging = false;
                 console.log('Drag stopped');
@@ -783,10 +976,498 @@ class DicomViewer {
         
         this.element.addEventListener('mousedown', mouseDown);
         this.element.addEventListener('mousemove', mouseMove);
-        this.element.addEventListener('mouseup', stopDragging);
-        this.element.addEventListener('mouseleave', stopDragging);
+        this.element.addEventListener('mouseup', mouseUp);
+        this.element.addEventListener('mouseleave', mouseUp);
         
-        console.log('Mouse handlers installed for W/L, Pan, and Zoom');
+        console.log('Mouse handlers installed for all tools');
+    }
+    
+    findNearestPoint(x, y, measurement) {
+        const threshold = 10; // pixels
+        for (let i = 0; i < measurement.points.length; i++) {
+            const p = measurement.points[i];
+            const dist = Math.sqrt((p.x - x) ** 2 + (p.y - y) ** 2);
+            if (dist <= threshold) {
+                return i;
+            }
+        }
+        return null;
+    }
+    
+    redrawMeasurements() {
+        if (!this.measurementCtx || !this.measurementCanvas) return;
+        
+        // Clear canvas
+        this.measurementCtx.clearRect(0, 0, this.measurementCanvas.width, this.measurementCanvas.height);
+        
+        // Draw all completed measurements
+        this.measurements.forEach(measurement => {
+            if (measurement.imageIndex === this.currentIndex) {
+                this.drawMeasurement(measurement, false);
+            }
+        });
+        
+        // Draw current measurement being drawn
+        if (this.currentMeasurement) {
+            this.drawMeasurement(this.currentMeasurement, true);
+        }
+    }
+    
+    // Convert canvas display coordinates to image pixel coordinates
+    canvasToImageCoords(canvasPoint) {
+        try {
+            const pixelCoords = cornerstone.canvasToPixel(this.element, canvasPoint);
+            // Round to integer pixel coordinates
+            return {
+                x: Math.round(pixelCoords.x),
+                y: Math.round(pixelCoords.y)
+            };
+        } catch (e) {
+            console.warn('Failed to convert canvas to image coords:', e);
+            return canvasPoint;
+        }
+    }
+    
+    // Convert image pixel coordinates to canvas display coordinates
+    imageToCanvasCoords(imagePoint) {
+        try {
+            return cornerstone.pixelToCanvas(this.element, imagePoint);
+        } catch (e) {
+            console.warn('Failed to convert image to canvas coords:', e);
+            return imagePoint;
+        }
+    }
+    
+    drawMeasurement(measurement, isActive) {
+        const ctx = this.measurementCtx;
+        // Convert image coordinates to canvas coordinates for drawing
+        const points = measurement.imagePoints ? 
+            measurement.imagePoints.map(p => this.imageToCanvasCoords(p)) : 
+            measurement.points;
+        
+        ctx.strokeStyle = isActive ? '#ffff00' : '#00ff00';
+        ctx.fillStyle = isActive ? '#ffff00' : '#00ff00';
+        ctx.lineWidth = 2;
+        ctx.font = '14px Arial';
+        
+        if (measurement.tool === 'length' && points.length >= 2) {
+            // Draw line
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            ctx.lineTo(points[1].x, points[1].y);
+            ctx.stroke();
+            
+            // Draw handles
+            points.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 4, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+            
+            // Calculate and display length
+            const length = this.calculateDistance(points[0], points[1]);
+            const midX = (points[0].x + points[1].x) / 2;
+            const midY = (points[0].y + points[1].y) / 2;
+            ctx.fillText(`${length.toFixed(1)} px`, midX + 5, midY - 5);
+            
+        } else if (measurement.tool === 'angle' && points.length >= 2) {
+            // Draw lines
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            ctx.lineTo(points[1].x, points[1].y);
+            if (points.length >= 3) {
+                ctx.lineTo(points[2].x, points[2].y);
+            }
+            ctx.stroke();
+            
+            // Draw larger, more visible handles for dragging
+            const labels = ['1st', 'Vertex', '3rd'];
+            points.forEach((p, i) => {
+                // Draw outer circle for better visibility
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 6, 0, 2 * Math.PI);
+                ctx.fillStyle = isActive ? '#ffff00' : '#00ff00';
+                ctx.fill();
+                
+                // Draw inner circle
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 3, 0, 2 * Math.PI);
+                ctx.fillStyle = '#000000';
+                ctx.fill();
+                
+                // Restore fill color for text
+                ctx.fillStyle = isActive ? '#ffff00' : '#00ff00';
+                
+                // Draw point label
+                ctx.fillText(labels[i], p.x + 10, p.y - 10);
+            });
+            
+            // Calculate and display angle if complete
+            if (points.length >= 3) {
+                const angle = this.calculateAngle(points[0], points[1], points[2]);
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText(`${angle.toFixed(1)}°`, points[1].x + 15, points[1].y + 20);
+                ctx.font = '14px Arial'; // Reset font
+            }
+            
+        } else if (measurement.tool === 'area' && points.length >= 4) {
+            // Ellipse with control points
+            // points[0] = center
+            // points[1] = end of major axis (controls size and rotation)
+            // points[2] = end of minor axis (controls ratio)
+            // points[3] = rotation handle
+            
+            const center = points[0];
+            const majorEnd = points[1];
+            const minorEnd = points[2];
+            
+            // Calculate ellipse parameters
+            const dx = majorEnd.x - center.x;
+            const dy = majorEnd.y - center.y;
+            const radiusX = Math.sqrt(dx * dx + dy * dy);
+            const rotation = Math.atan2(dy, dx);
+            
+            const dx2 = minorEnd.x - center.x;
+            const dy2 = minorEnd.y - center.y;
+            const radiusY = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+            
+            // Draw ellipse
+            ctx.save();
+            ctx.translate(center.x, center.y);
+            ctx.rotate(rotation);
+            ctx.beginPath();
+            ctx.ellipse(0, 0, radiusX, radiusY, 0, 0, 2 * Math.PI);
+            ctx.restore();
+            ctx.stroke();
+            
+            // Draw center point
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, 6, 0, 2 * Math.PI);
+            ctx.fillStyle = isActive ? '#ffff00' : '#00ff00';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, 3, 0, 2 * Math.PI);
+            ctx.fillStyle = '#000000';
+            ctx.fill();
+            ctx.fillStyle = isActive ? '#ffff00' : '#00ff00';
+            ctx.fillText('Center', center.x + 10, center.y - 10);
+            
+            // Draw major axis handle
+            ctx.beginPath();
+            ctx.moveTo(center.x, center.y);
+            ctx.lineTo(majorEnd.x, majorEnd.y);
+            ctx.strokeStyle = isActive ? '#ffff00' : '#00ff00';
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            ctx.beginPath();
+            ctx.arc(majorEnd.x, majorEnd.y, 6, 0, 2 * Math.PI);
+            ctx.fillStyle = isActive ? '#ffff00' : '#00ff00';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(majorEnd.x, majorEnd.y, 3, 0, 2 * Math.PI);
+            ctx.fillStyle = '#000000';
+            ctx.fill();
+            ctx.fillStyle = isActive ? '#ffff00' : '#00ff00';
+            ctx.fillText('Size/Rotate', majorEnd.x + 10, majorEnd.y - 10);
+            
+            // Draw minor axis handle
+            ctx.beginPath();
+            ctx.moveTo(center.x, center.y);
+            ctx.lineTo(minorEnd.x, minorEnd.y);
+            ctx.strokeStyle = isActive ? '#ffff00' : '#00ff00';
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            ctx.beginPath();
+            ctx.arc(minorEnd.x, minorEnd.y, 6, 0, 2 * Math.PI);
+            ctx.fillStyle = isActive ? '#ffff00' : '#00ff00';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(minorEnd.x, minorEnd.y, 3, 0, 2 * Math.PI);
+            ctx.fillStyle = '#000000';
+            ctx.fill();
+            ctx.fillStyle = isActive ? '#ffff00' : '#00ff00';
+            ctx.fillText('Ratio', minorEnd.x + 10, minorEnd.y - 10);
+            
+            // Calculate pixel statistics within ellipse
+            const stats = this.calculateEllipseStats(center, radiusX, radiusY, rotation);
+            console.log('Drawing ellipse with stats:', stats);
+            
+            // Calculate and display area and statistics
+            const area = Math.PI * radiusX * radiusY;
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText(`Area: ${area.toFixed(1)} px²`, center.x + 10, center.y + 20);
+            
+            if (stats) {
+                ctx.font = '12px Arial';
+                ctx.fillText(`Mean: ${stats.mean.toFixed(1)}`, center.x + 10, center.y + 35);
+                ctx.fillText(`Min: ${stats.min.toFixed(1)}`, center.x + 10, center.y + 48);
+                ctx.fillText(`Max: ${stats.max.toFixed(1)}`, center.x + 10, center.y + 61);
+            } else {
+                ctx.font = '12px Arial';
+                ctx.fillText('(No stats available)', center.x + 10, center.y + 35);
+            }
+            ctx.font = '14px Arial';
+            
+        } else if (measurement.tool === 'probe' && points.length >= 1) {
+            // Draw crosshair
+            const p = points[0];
+            ctx.beginPath();
+            ctx.moveTo(p.x - 10, p.y);
+            ctx.lineTo(p.x + 10, p.y);
+            ctx.moveTo(p.x, p.y - 10);
+            ctx.lineTo(p.x, p.y + 10);
+            ctx.stroke();
+            
+            // Get pixel value - convert from canvas coords to pixel coords
+            try {
+                const image = cornerstone.getImage(this.element);
+                if (image) {
+                    // Our stored coordinates are display coordinates relative to the element
+                    // The Cornerstone element has a canvas, get it
+                    const enabledElement = cornerstone.getEnabledElement(this.element);
+                    const canvas = enabledElement.canvas;
+                    
+                    // cornerstone.canvasToPixel expects coordinates in the canvas coordinate system
+                    // Our coordinates are already in the right system (relative to canvas/element)
+                    const pixelCoords = cornerstone.canvasToPixel(this.element, p);
+                    let x = Math.round(pixelCoords.x);
+                    let y = Math.round(pixelCoords.y);
+                    
+                    console.log('Display coords:', p, 'Pixel coords:', pixelCoords, 'Rounded:', x, y);
+                    console.log('Image dimensions:', image.width, 'x', image.height);
+                    
+                    // Clamp coordinates to valid image bounds
+                    const clampedX = Math.max(0, Math.min(image.width - 1, x));
+                    const clampedY = Math.max(0, Math.min(image.height - 1, y));
+                    const wasClamped = (clampedX !== x || clampedY !== y);
+                    x = clampedX;
+                    y = clampedY;
+                    
+                    // Flip Y coordinate for pixel data access (image data is stored top-to-bottom)
+                    const flippedY = image.height - 1 - y;
+                    
+                    // Read pixel value
+                    const pixelData = image.getPixelData();
+                    const index = flippedY * image.width + x;
+                    const pixelValue = pixelData[index];
+                    console.log('Index:', index, 'Value:', pixelValue, 'Clamped:', wasClamped, 'FlippedY:', flippedY);
+                    
+                    ctx.fillText(`Coords: (${x}, ${y})${wasClamped ? ' *' : ''}`, p.x + 15, p.y - 5);
+                    ctx.fillText(`Value: ${pixelValue}`, p.x + 15, p.y + 10);
+                    if (wasClamped) {
+                        ctx.font = '10px Arial';
+                        ctx.fillText('* clamped to edge', p.x + 15, p.y + 22);
+                        ctx.font = '14px Arial';
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not read pixel value:', e);
+                ctx.fillText(`Value: error`, p.x + 15, p.y - 5);
+            }
+        }
+    }
+    
+    calculateDistance(p1, p2) {
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+    
+    calculateAngle(p1, p2, p3) {
+        // Calculate angle at p2 (vertex)
+        const v1 = { x: p1.x - p2.x, y: p1.y - p2.y };
+        const v2 = { x: p3.x - p2.x, y: p3.y - p2.y };
+        
+        const dot = v1.x * v2.x + v1.y * v2.y;
+        const mag1 = Math.sqrt(v1.x * v1.x + v1.y * v1.y);
+        const mag2 = Math.sqrt(v2.x * v2.x + v2.y * v2.y);
+        
+        const cosAngle = dot / (mag1 * mag2);
+        const angle = Math.acos(Math.max(-1, Math.min(1, cosAngle))) * (180 / Math.PI);
+        return angle;
+    }
+    
+    calculatePolygonArea(points) {
+        let area = 0;
+        for (let i = 0; i < points.length; i++) {
+            const j = (i + 1) % points.length;
+            area += points[i].x * points[j].y;
+            area -= points[j].x * points[i].y;
+        }
+        return Math.abs(area / 2);
+    }
+    
+    calculateCentroid(points) {
+        let x = 0, y = 0;
+        points.forEach(p => {
+            x += p.x;
+            y += p.y;
+        });
+        return { x: x / points.length, y: y / points.length };
+    }
+    
+    calculateEllipseStats(center, radiusX, radiusY, rotation) {
+        try {
+            const image = cornerstone.getImage(this.element);
+            if (!image) {
+                console.warn('No image available for stats calculation');
+                return null;
+            }
+            
+            const pixelData = image.getPixelData();
+            if (!pixelData) {
+                console.warn('No pixel data available');
+                return null;
+            }
+            
+            const width = image.width;
+            const height = image.height;
+            
+            // Convert center from canvas coordinates to pixel coordinates
+            const pixelCenter = cornerstone.canvasToPixel(this.element, center);
+            
+            // Get viewport to understand scaling
+            const viewport = cornerstone.getViewport(this.element);
+            const scale = viewport.scale;
+            
+            // Scale radii from canvas to image coordinates
+            const pixelRadiusX = radiusX / scale;
+            const pixelRadiusY = radiusY / scale;
+            
+            console.log('Canvas center:', center, 'Pixel center:', pixelCenter);
+            console.log('Canvas radii:', radiusX, radiusY, 'Pixel radii:', pixelRadiusX, pixelRadiusY);
+            console.log('Image dimensions:', width, height);
+            
+            let sum = 0;
+            let count = 0;
+            let min = Infinity;
+            let max = -Infinity;
+            
+            // Calculate bounding box for efficiency
+            const cosR = Math.cos(-rotation);
+            const sinR = Math.sin(-rotation);
+            
+            const minX = Math.max(0, Math.floor(pixelCenter.x - pixelRadiusX - 2));
+            const maxX = Math.min(width - 1, Math.ceil(pixelCenter.x + pixelRadiusX + 2));
+            const minY = Math.max(0, Math.floor(pixelCenter.y - pixelRadiusY - 2));
+            const maxY = Math.min(height - 1, Math.ceil(pixelCenter.y + pixelRadiusY + 2));
+            
+            console.log('Bounding box:', minX, maxX, minY, maxY);
+            
+            // Iterate through bounding box and check if each pixel is inside ellipse
+            for (let y = minY; y <= maxY; y++) {
+                for (let x = minX; x <= maxX; x++) {
+                    // Transform point to ellipse coordinate system
+                    const dx = x - pixelCenter.x;
+                    const dy = y - pixelCenter.y;
+                    
+                    // Rotate point
+                    const rx = dx * cosR - dy * sinR;
+                    const ry = dx * sinR + dy * cosR;
+                    
+                    // Check if point is inside ellipse
+                    const normalized = (rx * rx) / (pixelRadiusX * pixelRadiusX) + (ry * ry) / (pixelRadiusY * pixelRadiusY);
+                    
+                    if (normalized <= 1) {
+                        // Flip Y coordinate for pixel data access
+                        const flippedY = height - 1 - Math.floor(y);
+                        const index = flippedY * width + Math.floor(x);
+                        if (index >= 0 && index < pixelData.length) {
+                            const value = pixelData[index];
+                            sum += value;
+                            count++;
+                            min = Math.min(min, value);
+                            max = Math.max(max, value);
+                        }
+                    }
+                }
+            }
+            
+            if (count === 0) {
+                console.warn('No pixels found inside ellipse');
+                return null;
+            }
+            
+            const stats = {
+                mean: sum / count,
+                min: min,
+                max: max,
+                count: count
+            };
+            
+            console.log('Ellipse stats calculated:', stats);
+            
+            return stats;
+        } catch (e) {
+            console.warn('Could not calculate ellipse statistics:', e);
+            return null;
+        }
+    }
+    
+    updateMeasurementsList() {
+        const measurementsList = document.getElementById('measurementsList');
+        if (!measurementsList) return;
+        
+        measurementsList.innerHTML = '';
+        
+        this.measurements.forEach((measurement, index) => {
+            const item = document.createElement('div');
+            item.className = 'measurement-item';
+            
+            let text = `${index + 1}. ${measurement.tool}: `;
+            
+            if (measurement.tool === 'length' && measurement.points.length >= 2) {
+                const length = this.calculateDistance(measurement.points[0], measurement.points[1]);
+                text += `${length.toFixed(1)} px`;
+            } else if (measurement.tool === 'angle' && measurement.points.length >= 3) {
+                const angle = this.calculateAngle(measurement.points[0], measurement.points[1], measurement.points[2]);
+                text += `${angle.toFixed(1)}°`;
+            } else if (measurement.tool === 'area' && measurement.points.length >= 4) {
+                // Ellipse area calculation
+                const center = measurement.points[0];
+                const majorEnd = measurement.points[1];
+                const minorEnd = measurement.points[2];
+                
+                const dx = majorEnd.x - center.x;
+                const dy = majorEnd.y - center.y;
+                const radiusX = Math.sqrt(dx * dx + dy * dy);
+                const rotation = Math.atan2(dy, dx);
+                
+                const dx2 = minorEnd.x - center.x;
+                const dy2 = minorEnd.y - center.y;
+                const radiusY = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+                
+                const area = Math.PI * radiusX * radiusY;
+                const stats = this.calculateEllipseStats(center, radiusX, radiusY, rotation);
+                
+                text += `${area.toFixed(1)} px²`;
+                if (stats) {
+                    text += ` | Mean: ${stats.mean.toFixed(1)}, Min: ${stats.min.toFixed(1)}, Max: ${stats.max.toFixed(1)}`;
+                }
+            } else if (measurement.tool === 'probe') {
+                text += `x:${Math.round(measurement.points[0].x)}, y:${Math.round(measurement.points[0].y)}`;
+            }
+            
+            item.textContent = text;
+            
+            // Add delete button
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = '×';
+            deleteBtn.className = 'delete-measurement-btn';
+            deleteBtn.style.cssText = 'margin-left: 10px; color: red; cursor: pointer; border: none; background: none; font-size: 18px;';
+            deleteBtn.addEventListener('click', () => {
+                this.measurements.splice(index, 1);
+                this.updateMeasurementsList();
+                this.redrawMeasurements();
+            });
+            
+            item.appendChild(deleteBtn);
+            measurementsList.appendChild(item);
+        });
     }
 
     updateViewportOverlay(event) {
@@ -860,6 +1541,61 @@ class DicomViewer {
                 <ul>
                     <li>Drag <strong>Down</strong> → Zoom In</li>
                     <li>Drag <strong>Up</strong> → Zoom Out</li>
+                </ul>
+            `;
+        } else if (this.currentTool === 'frameSlider') {
+            instructionContent = `
+                <h3>Frame Slider</h3>
+                <p><strong>Left or Middle Mouse Button + Drag:</strong></p>
+                <ul>
+                    <li>Drag <strong>Down</strong> → Next frames</li>
+                    <li>Drag <strong>Up</strong> → Previous frames</li>
+                </ul>
+                <p style="margin-top: 0.5rem; color: #4a9eff; font-size: 0.9rem;">
+                    Works with multi-frame DICOM files
+                </p>
+            `;
+        } else if (this.currentTool === 'length') {
+            instructionContent = `
+                <h3>Length Measurement</h3>
+                <p><strong>Left Mouse Button:</strong></p>
+                <ul>
+                    <li>Click <strong>1st point</strong> → start of line</li>
+                    <li>Click <strong>2nd point</strong> → end of line</li>
+                </ul>
+            `;
+        } else if (this.currentTool === 'angle') {
+            instructionContent = `
+                <h3>Angle Measurement</h3>
+                <p><strong>Drag the points to adjust:</strong></p>
+                <ul>
+                    <li><strong>1st point</strong> → First arm of angle</li>
+                    <li><strong>2nd point</strong> → Vertex (center point)</li>
+                    <li><strong>3rd point</strong> → Second arm of angle</li>
+                </ul>
+                <p style="margin-top: 0.5rem; color: #4a9eff; font-size: 0.9rem;">
+                    Click near any point to drag it to a new position
+                </p>
+            `;
+        } else if (this.currentTool === 'area') {
+            instructionContent = `
+                <h3>Area Measurement (Ellipse)</h3>
+                <p><strong>Drag the handles to adjust:</strong></p>
+                <ul>
+                    <li><strong>Center</strong> → Move the ellipse position</li>
+                    <li><strong>Size/Rotate</strong> → Change size and rotation</li>
+                    <li><strong>Ratio</strong> → Adjust width-to-height ratio</li>
+                </ul>
+                <p style="margin-top: 0.5rem; color: #4a9eff; font-size: 0.9rem;">
+                    Click near any handle to drag it
+                </p>
+            `;
+        } else if (this.currentTool === 'probe') {
+            instructionContent = `
+                <h3>Pixel Probe</h3>
+                <p><strong>Left Mouse Button:</strong></p>
+                <ul>
+                    <li>Click anywhere to read pixel value</li>
                 </ul>
             `;
         }
@@ -986,6 +1722,9 @@ class DicomViewer {
             case 'zoom':
                 document.getElementById('zoomTool')?.classList.add('active');
                 break;
+            case 'frameSlider':
+                document.getElementById('frameSlider')?.classList.add('active');
+                break;
             case 'length':
                 document.getElementById('lengthTool')?.classList.add('active');
                 break;
@@ -1011,8 +1750,58 @@ class DicomViewer {
         
         console.log('Tool changed to:', tool);
         
-        // Show tool instructions for W/L, Pan, and Zoom tools
-        if (['windowLevel', 'pan', 'zoom'].includes(tool)) {
+        // Create default angle when angle tool is selected
+        if (tool === 'angle' && this.element && this.isViewerInitialized) {
+            const centerX = this.element.clientWidth / 2;
+            const centerY = this.element.clientHeight / 2;
+            const armLength = 80;
+            
+            const points = [
+                { x: centerX - armLength, y: centerY - armLength / 2 }, // First arm point
+                { x: centerX, y: centerY }, // Vertex
+                { x: centerX + armLength, y: centerY - armLength / 2 }  // Second arm point
+            ];
+            
+            this.currentMeasurement = {
+                tool: 'angle',
+                points: points,
+                imagePoints: points.map(p => this.canvasToImageCoords(p)),
+                imageIndex: this.currentIndex
+            };
+            this.measurements.push(this.currentMeasurement);
+            this.currentMeasurement = null;
+            this.updateMeasurementsList();
+            this.redrawMeasurements();
+        }
+        
+        // Create default ellipse when area tool is selected
+        if (tool === 'area' && this.element && this.isViewerInitialized) {
+            const centerX = this.element.clientWidth / 2;
+            const centerY = this.element.clientHeight / 2;
+            const majorRadius = 80;
+            const minorRadius = 50;
+            
+            const points = [
+                { x: centerX, y: centerY }, // Center
+                { x: centerX + majorRadius, y: centerY }, // Major axis end (controls size and rotation)
+                { x: centerX, y: centerY - minorRadius }, // Minor axis end (controls ratio)
+                { x: centerX + majorRadius, y: centerY } // Rotation handle (same as major for now)
+            ];
+            
+            this.currentMeasurement = {
+                tool: 'area',
+                points: points,
+                imagePoints: points.map(p => this.canvasToImageCoords(p)),
+                imageIndex: this.currentIndex
+            };
+            this.measurements.push(this.currentMeasurement);
+            this.currentMeasurement = null;
+            this.updateMeasurementsList();
+            this.redrawMeasurements();
+        }
+        
+        // Show tool instructions for interactive tools
+        if (['windowLevel', 'pan', 'zoom', 'frameSlider', 'length', 'angle', 'area', 'probe'].includes(tool)) {
             this.showWindowLevelInstructions();
         }
         
