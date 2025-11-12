@@ -190,6 +190,9 @@ header h1 {
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
 }
 
 .viewer-placeholder {
@@ -610,4 +613,116 @@ header h1 {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #505050;
+}
+
+/* Window/Level Instructions Overlay */
+.wl-instructions {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(45, 45, 45, 0.98);
+    border: 2px solid #4a9eff;
+    border-radius: 8px;
+    padding: 2rem;
+    z-index: 3000;
+    min-width: 400px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+    animation: fadeIn 0.3s ease-in;
+    opacity: 1;
+    transition: opacity 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -45%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+.wl-instructions-content h3 {
+    color: #4a9eff;
+    margin-bottom: 1rem;
+    font-size: 1.3rem;
+}
+
+.wl-instructions-content p {
+    color: #fff;
+    margin-bottom: 0.5rem;
+}
+
+.wl-instructions-content ul {
+    list-style: none;
+    padding-left: 1rem;
+    margin: 1rem 0;
+}
+
+.wl-instructions-content li {
+    color: #ccc;
+    margin: 0.5rem 0;
+    font-size: 0.95rem;
+}
+
+.wl-instructions-content strong {
+    color: #4a9eff;
+}
+
+.wl-instructions-close {
+    background-color: #4a9eff;
+    color: white;
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    margin-top: 1rem;
+    width: 100%;
+    transition: background-color 0.2s;
+}
+
+.wl-instructions-close:hover {
+    background-color: #357abd;
+}
+
+@media (max-width: 768px) {
+    .wl-instructions {
+        min-width: 90%;
+        padding: 1.5rem;
+    }
+}
+
+/* Viewport Overlay for WW/WL Display */
+.viewport-overlay {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    padding: 0.75rem;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.85rem;
+    z-index: 100;
+    pointer-events: none;
+    border: 1px solid rgba(74, 158, 255, 0.5);
+}
+
+.viewport-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.viewport-info div {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.viewport-info strong {
+    color: #4a9eff;
+    min-width: 50px;
 }

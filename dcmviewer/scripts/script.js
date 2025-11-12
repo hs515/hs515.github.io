@@ -4,58 +4,58 @@ class DicomViewer {
         this.currentIndex = 0;
         this.element = null;
         this.isViewerInitialized = false;
+        this.toolsEnabled = false;
         this.tools = {};
         this.measurements = [];
         this.annotations = [];
         this.currentTool = 'windowLevel';
+        this.mouseHandlers = {
+            windowLevel: null,
+            pan: null,
+            zoom: null
+        };
         
         this.init();
     }
 
     init() {
-        // Initialize Cornerstone
-        cornerstone.enable(document.getElementById('dicomViewer'));
+        // Get the element first
         this.element = document.getElementById('dicomViewer');
+        
+        // Check if required libraries are loaded
+        if (typeof cornerstone === 'undefined') {
+            console.error('Cornerstone library not loaded');
+            alert('Failed to load required libraries. Please refresh the page.');
+            return;
+        }
+        
+        console.log('Cornerstone loaded, version:', cornerstone.version || 'unknown');
         
         // Initialize WADO Image Loader
         if (typeof cornerstoneWADOImageLoader !== 'undefined') {
             cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
             cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
-            cornerstoneWADOImageLoader.configure({
-                useWebWorkers: true,
+            
+            const config = {
+                beforeSend: function(xhr) {
+                    // Add custom headers here if needed
+                },
+                useWebWorkers: false, // Disable web workers for now to simplify
                 decodeConfig: {
                     convertFloatPixelDataToInt: false
                 }
-            });
+            };
+            
+            cornerstoneWADOImageLoader.configure(config);
+            console.log('WADO Image Loader configured');
+        } else {
+            console.error('WADO Image Loader not available - DICOM images will not work');
+            alert('WADO Image Loader failed to load. DICOM viewing will not work.');
+            return;
         }
 
-        // Initialize Cornerstone Tools if available
-        if (typeof cornerstoneTools !== 'undefined') {
-            cornerstoneTools.external.cornerstone = cornerstone;
-            cornerstoneTools.init();
-            
-            // Add basic tools
-            cornerstoneTools.addTool(cornerstoneTools.WwwcTool);
-            cornerstoneTools.addTool(cornerstoneTools.PanTool);
-            cornerstoneTools.addTool(cornerstoneTools.ZoomTool);
-            
-            // Add measurement tools
-            cornerstoneTools.addTool(cornerstoneTools.LengthTool);
-            cornerstoneTools.addTool(cornerstoneTools.RectangleRoiTool);
-            cornerstoneTools.addTool(cornerstoneTools.AngleTool);
-            cornerstoneTools.addTool(cornerstoneTools.ProbeTool);
-            
-            // Add annotation tools
-            cornerstoneTools.addTool(cornerstoneTools.TextMarkerTool);
-            cornerstoneTools.addTool(cornerstoneTools.ArrowAnnotateTool);
-            cornerstoneTools.addTool(cornerstoneTools.FreehandRoiTool);
-            
-            // Set initial tool
-            cornerstoneTools.setToolActive('Wwwc', { mouseButtonMask: 1 });
-            
-            // Setup measurement event listeners
-            this.setupMeasurementEvents();
-        }
+        // Don't initialize tools yet - wait until image is displayed
+        console.log('Basic initialization complete');
 
         this.setupEventListeners();
         this.setupTabNavigation();
@@ -170,20 +170,8 @@ class DicomViewer {
     }
 
     setupMeasurementEvents() {
-        if (typeof cornerstoneTools === 'undefined') return;
-
-        // Listen for measurement events
-        this.element.addEventListener('cornerstonetoolsmeasurementadded', (e) => {
-            this.onMeasurementAdded(e);
-        });
-
-        this.element.addEventListener('cornerstonetoolsmeasurementmodified', (e) => {
-            this.onMeasurementModified(e);
-        });
-
-        this.element.addEventListener('cornerstonetoolsmeasurementremoved', (e) => {
-            this.onMeasurementRemoved(e);
-        });
+        // Temporarily disabled - will re-enable when cornerstone tools are working
+        console.log('Measurement events disabled for basic functionality');
     }
 
     onMeasurementAdded(event) {
@@ -388,8 +376,11 @@ class DicomViewer {
     }
 
     async handleFiles(files) {
+        console.log('handleFiles called with', files.length, 'files');
         const fileArray = Array.from(files);
         const validFiles = fileArray.filter(file => this.isDicomFile(file));
+        
+        console.log('Valid DICOM files:', validFiles.length);
         
         if (validFiles.length === 0) {
             alert('No valid DICOM files selected.');
@@ -399,16 +390,23 @@ class DicomViewer {
         this.showLoading(true);
         
         try {
+            console.log('Loading DICOM files...');
             const imageIds = await this.loadDicomFiles(validFiles);
+            console.log('Loaded image IDs:', imageIds);
+            
             this.currentImageIds = imageIds;
             this.updateImageList(validFiles);
             
             if (imageIds.length > 0) {
+                console.log('Attempting to display first image...');
                 await this.displayImage(0);
+            } else {
+                alert('No images could be loaded from the selected files.');
             }
         } catch (error) {
             console.error('Error loading DICOM files:', error);
-            alert('Error loading DICOM files. Please check the console for details.');
+            console.error('Error stack:', error.stack);
+            alert('Error loading DICOM files: ' + error.message);
         } finally {
             this.showLoading(false);
         }
@@ -419,9 +417,9 @@ class DicomViewer {
         
         for (const file of files) {
             try {
-                const arrayBuffer = await this.fileToArrayBuffer(file);
                 const imageId = cornerstoneWADOImageLoader.wadouri.fileManager.add(file);
                 imageIds.push(imageId);
+                console.log('Successfully loaded file:', file.name, 'with imageId:', imageId);
             } catch (error) {
                 console.warn(`Failed to load file ${file.name}:`, error);
             }
@@ -477,8 +475,18 @@ class DicomViewer {
         try {
             this.currentIndex = index;
             const imageId = this.currentImageIds[index];
+            console.log('Attempting to display image:', imageId);
             
+            // Enable the element if this is the first image
+            if (!this.isViewerInitialized) {
+                console.log('Enabling cornerstone element...');
+                cornerstone.enable(this.element);
+                this.isViewerInitialized = true;
+            }
+            
+            console.log('Loading image...');
             const image = await cornerstone.loadImage(imageId);
+            console.log('Image loaded successfully:', image);
             
             // Hide placeholder
             const placeholder = this.element.querySelector('.viewer-placeholder');
@@ -486,12 +494,22 @@ class DicomViewer {
                 placeholder.style.display = 'none';
             }
             
+            console.log('Displaying image...');
             cornerstone.displayImage(this.element, image);
+            console.log('Image displayed successfully');
             
-            // Enable viewport if not already done
-            if (!this.isViewerInitialized) {
-                cornerstone.enable(this.element);
-                this.isViewerInitialized = true;
+            // Enable W/L tool AFTER image is successfully displayed
+            if (!this.toolsEnabled) {
+                // Wait a bit for the display to complete
+                setTimeout(() => {
+                    try {
+                        this.enableWindowLevelTool();
+                        this.toolsEnabled = true;
+                        this.showWindowLevelInstructions();
+                    } catch (error) {
+                        console.error('Could not enable tools (image will still display):', error);
+                    }
+                }, 200);
             }
             
             // Update image info
@@ -500,8 +518,320 @@ class DicomViewer {
             
         } catch (error) {
             console.error('Error displaying image:', error);
-            alert('Error displaying image. Please check the console for details.');
+            console.error('Error stack:', error.stack);
+            alert('Error displaying image: ' + error.message + '\n\nCheck console for details.');
         }
+    }
+
+    enableWindowLevelTool() {
+        try {
+            console.log('=== Starting Window/Level Tool Setup ===');
+            
+            // Check if tools library is available
+            if (typeof cornerstoneTools === 'undefined') {
+                console.error('cornerstoneTools is not defined');
+                return;
+            }
+            
+            console.log('Setting external dependencies...');
+            // Set external dependencies - MUST be done before init
+            cornerstoneTools.external.cornerstone = cornerstone;
+            cornerstoneTools.external.cornerstoneMath = cornerstoneMath;
+            cornerstoneTools.external.Hammer = Hammer;
+            
+            console.log('Initializing Cornerstone Tools...');
+            // Initialize cornerstone tools globally with proper config
+            cornerstoneTools.init({
+                mouseEnabled: true,
+                touchEnabled: true,
+                globalToolSyncEnabled: false,
+                showSVGCursors: false
+            });
+            
+            console.log('Adding WwwcTool to registry...');
+            // Add the Wwwc (Window Width/Center) tool to the tool registry
+            const WwwcTool = cornerstoneTools.WwwcTool;
+            cornerstoneTools.addTool(WwwcTool);
+            
+            console.log('Enabling input on element...');
+            // CRITICAL: Must enable the element for input before activating tools
+            cornerstoneTools.setToolEnabled('Wwwc');
+            
+            console.log('Setting tool active with mouse button...');
+            // Activate the tool with left mouse button
+            cornerstoneTools.setToolActiveForElement(this.element, 'Wwwc', { 
+                mouseButtonMask: 1  // Left button
+            });
+            
+            console.log('WwwcTool activated successfully on element');
+            
+            // Verify tool state
+            const toolState = cornerstoneTools.getToolState(this.element);
+            console.log('Tool state on element:', toolState);
+            
+            // Add viewport overlay to show WW/WL values
+            this.addViewportOverlay();
+            
+            // Log current viewport state
+            const viewport = cornerstone.getViewport(this.element);
+            console.log('Current viewport:', viewport);
+            console.log('Initial WW:', viewport.voi.windowWidth);
+            console.log('Initial WL:', viewport.voi.windowCenter);
+            
+            // Add keyboard shortcuts for testing
+            document.addEventListener('keydown', (e) => {
+                const viewport = cornerstone.getViewport(this.element);
+                let changed = false;
+                
+                switch(e.key) {
+                    case 'w': // Increase width
+                        viewport.voi.windowWidth += 10;
+                        changed = true;
+                        console.log('Width increased:', viewport.voi.windowWidth);
+                        break;
+                    case 's': // Decrease width
+                        viewport.voi.windowWidth -= 10;
+                        changed = true;
+                        console.log('Width decreased:', viewport.voi.windowWidth);
+                        break;
+                    case 'a': // Decrease level
+                        viewport.voi.windowCenter -= 10;
+                        changed = true;
+                        console.log('Level decreased:', viewport.voi.windowCenter);
+                        break;
+                    case 'd': // Increase level
+                        viewport.voi.windowCenter += 10;
+                        changed = true;
+                        console.log('Level increased:', viewport.voi.windowCenter);
+                        break;
+                }
+                
+                if (changed) {
+                    cornerstone.setViewport(this.element, viewport);
+                }
+            });
+            
+            console.log('=== Window/Level Tool Setup Complete ===');
+            console.log('TIP: Click and drag LEFT mouse button on the image to adjust WW/WL');
+            console.log('OR use keyboard: W/S for width, A/D for level');
+            
+        } catch (error) {
+            console.error('=== ERROR enabling W/L tool ===');
+            console.error('Error:', error);
+            console.error('Stack:', error.stack);
+            throw error;
+        }
+    }
+
+    addViewportOverlay() {
+        // Create overlay element to display WW/WL
+        if (!document.getElementById('viewport-overlay')) {
+            const overlay = document.createElement('div');
+            overlay.id = 'viewport-overlay';
+            overlay.className = 'viewport-overlay';
+            this.element.appendChild(overlay);
+        }
+
+        // Listen for viewport changes to update the overlay
+        this.element.addEventListener('cornerstoneimagerendered', (e) => {
+            this.updateViewportOverlay(e);
+        });
+        
+        // Add manual mouse handling for all tools
+        this.setupMouseHandlers();
+
+        console.log('Viewport overlay added with event listeners');
+        
+        // Force initial update
+        const viewport = cornerstone.getViewport(this.element);
+        if (viewport) {
+            this.updateViewportOverlay({ detail: { viewport } });
+        }
+    }
+
+    setupMouseHandlers() {
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
+        let startWW = 0;
+        let startWL = 0;
+        let startPanX = 0;
+        let startPanY = 0;
+        let startScale = 0;
+        
+        const mouseDown = (e) => {
+            // Middle mouse button (1) for Pan/Zoom, Left (0) or Middle (1) for W/L
+            const isMiddleButton = e.button === 1;
+            const isLeftButton = e.button === 0;
+            
+            if ((this.currentTool === 'pan' || this.currentTool === 'zoom') && isMiddleButton) {
+                isDragging = true;
+                startX = e.pageX;
+                startY = e.pageY;
+                
+                const viewport = cornerstone.getViewport(this.element);
+                startPanX = viewport.translation.x;
+                startPanY = viewport.translation.y;
+                startScale = viewport.scale;
+                
+                console.log(`${this.currentTool} drag started`);
+                e.preventDefault();
+            } else if (this.currentTool === 'windowLevel' && (isLeftButton || isMiddleButton)) {
+                isDragging = true;
+                startX = e.pageX;
+                startY = e.pageY;
+                
+                const viewport = cornerstone.getViewport(this.element);
+                startWW = viewport.voi.windowWidth;
+                startWL = viewport.voi.windowCenter;
+                
+                console.log('W/L drag started - Button:', e.button);
+                e.preventDefault();
+            }
+        };
+        
+        const mouseMove = (e) => {
+            if (isDragging) {
+                const deltaX = e.pageX - startX;
+                const deltaY = e.pageY - startY;
+                
+                const viewport = cornerstone.getViewport(this.element);
+                
+                if (this.currentTool === 'windowLevel') {
+                    // Horizontal movement changes width (contrast)
+                    viewport.voi.windowWidth = Math.max(1, startWW + deltaX * 2);
+                    
+                    // Vertical movement changes level (brightness)
+                    viewport.voi.windowCenter = startWL + deltaY * 2;
+                    
+                } else if (this.currentTool === 'pan') {
+                    // Pan: move the image
+                    viewport.translation.x = startPanX + deltaX;
+                    viewport.translation.y = startPanY + deltaY;
+                    
+                } else if (this.currentTool === 'zoom') {
+                    // Zoom: vertical movement controls zoom
+                    const zoomDelta = -deltaY * 0.01;
+                    viewport.scale = Math.max(0.1, Math.min(10, startScale + zoomDelta));
+                }
+                
+                cornerstone.setViewport(this.element, viewport);
+                e.preventDefault();
+            }
+        };
+        
+        const stopDragging = (e) => {
+            if (isDragging) {
+                isDragging = false;
+                console.log('Drag stopped');
+                e.preventDefault();
+            }
+        };
+        
+        this.element.addEventListener('mousedown', mouseDown);
+        this.element.addEventListener('mousemove', mouseMove);
+        this.element.addEventListener('mouseup', stopDragging);
+        this.element.addEventListener('mouseleave', stopDragging);
+        
+        console.log('Mouse handlers installed for W/L, Pan, and Zoom');
+    }
+
+    updateViewportOverlay(event) {
+        const viewport = event.detail.viewport;
+        const overlay = document.getElementById('viewport-overlay');
+        
+        if (overlay && viewport) {
+            const ww = Math.round(viewport.voi.windowWidth);
+            const wc = Math.round(viewport.voi.windowCenter);
+            
+            // Format tool name for display
+            const toolName = this.currentTool.charAt(0).toUpperCase() + this.currentTool.slice(1);
+            
+            // Build overlay content based on current tool
+            let overlayContent = `
+                <div class="viewport-info">
+                    <div><strong>Tool:</strong> ${toolName}</div>
+                    <div><strong>WW:</strong> ${ww}</div>
+                    <div><strong>WL:</strong> ${wc}</div>
+                    <div><strong>Zoom:</strong> ${viewport.scale.toFixed(2)}x</div>
+            `;
+            
+            // Add pan translation if pan tool is active
+            if (this.currentTool === 'pan') {
+                overlayContent += `
+                    <div><strong>Pan X:</strong> ${Math.round(viewport.translation.x)}</div>
+                    <div><strong>Pan Y:</strong> ${Math.round(viewport.translation.y)}</div>
+                `;
+            }
+            
+            overlayContent += `</div>`;
+            overlay.innerHTML = overlayContent;
+        }
+    }
+
+    showWindowLevelInstructions() {
+        // Create a temporary instruction overlay
+        const instructions = document.createElement('div');
+        instructions.className = 'wl-instructions';
+        
+        let instructionContent = '';
+        
+        // Show instructions based on current tool
+        if (this.currentTool === 'windowLevel') {
+            instructionContent = `
+                <h3>Window/Level Controls</h3>
+                <p><strong>Left or Middle Mouse Button + Drag:</strong></p>
+                <ul>
+                    <li>Drag <strong>Right</strong> → Increase Width (More Contrast)</li>
+                    <li>Drag <strong>Left</strong> → Decrease Width (Less Contrast)</li>
+                    <li>Drag <strong>Down</strong> → Increase Level (Brighter)</li>
+                    <li>Drag <strong>Up</strong> → Decrease Level (Darker)</li>
+                </ul>
+                <p style="margin-top: 0.5rem; color: #4a9eff; font-size: 0.9rem;">
+                    <strong>Keyboard Shortcuts:</strong><br>
+                    W/S = Width • A/D = Level
+                </p>
+            `;
+        } else if (this.currentTool === 'pan') {
+            instructionContent = `
+                <h3>Pan Controls</h3>
+                <p><strong>Middle Mouse Button + Drag:</strong></p>
+                <ul>
+                    <li>Drag in any direction to move the image</li>
+                </ul>
+            `;
+        } else if (this.currentTool === 'zoom') {
+            instructionContent = `
+                <h3>Zoom Controls</h3>
+                <p><strong>Middle Mouse Button + Drag:</strong></p>
+                <ul>
+                    <li>Drag <strong>Down</strong> → Zoom In</li>
+                    <li>Drag <strong>Up</strong> → Zoom Out</li>
+                </ul>
+            `;
+        }
+        
+        instructions.innerHTML = `
+            <div class="wl-instructions-content">
+                ${instructionContent}
+                <p style="margin-top: 0.5rem; color: #aaa; font-size: 0.85rem;">
+                    Current values shown in top-left corner
+                </p>
+                <button class="wl-instructions-close">Got it!</button>
+            </div>
+        `;
+        
+        document.body.appendChild(instructions);
+        
+        // Auto-hide after 8 seconds or on button click
+        const closeBtn = instructions.querySelector('.wl-instructions-close');
+        const closeInstructions = () => {
+            instructions.style.opacity = '0';
+            setTimeout(() => instructions.remove(), 300);
+        };
+        
+        closeBtn.addEventListener('click', closeInstructions);
+        setTimeout(closeInstructions, 8000);
     }
 
     updateImageInfo(image, index) {
@@ -577,63 +907,53 @@ class DicomViewer {
             btn.classList.remove('active');
         });
         
-        if (typeof cornerstoneTools !== 'undefined' && this.element) {
-            // Disable all tools first
-            cornerstoneTools.setToolPassive('Wwwc');
-            cornerstoneTools.setToolPassive('Pan');
-            cornerstoneTools.setToolPassive('Zoom');
-            cornerstoneTools.setToolPassive('Length');
-            cornerstoneTools.setToolPassive('RectangleRoi');
-            cornerstoneTools.setToolPassive('Angle');
-            cornerstoneTools.setToolPassive('Probe');
-            cornerstoneTools.setToolPassive('TextMarker');
-            cornerstoneTools.setToolPassive('ArrowAnnotate');
-            cornerstoneTools.setToolPassive('FreehandRoi');
-            
-            this.currentTool = tool;
-            
-            switch (tool) {
-                case 'windowLevel':
-                    cornerstoneTools.setToolActive('Wwwc', { mouseButtonMask: 1 });
-                    document.getElementById('windowLevelTool').classList.add('active');
-                    break;
-                case 'pan':
-                    cornerstoneTools.setToolActive('Pan', { mouseButtonMask: 1 });
-                    document.getElementById('panTool').classList.add('active');
-                    break;
-                case 'zoom':
-                    cornerstoneTools.setToolActive('Zoom', { mouseButtonMask: 1 });
-                    document.getElementById('zoomTool').classList.add('active');
-                    break;
-                case 'length':
-                    cornerstoneTools.setToolActive('Length', { mouseButtonMask: 1 });
-                    document.getElementById('lengthTool').classList.add('active');
-                    break;
-                case 'area':
-                    cornerstoneTools.setToolActive('RectangleRoi', { mouseButtonMask: 1 });
-                    document.getElementById('areaTool').classList.add('active');
-                    break;
-                case 'angle':
-                    cornerstoneTools.setToolActive('Angle', { mouseButtonMask: 1 });
-                    document.getElementById('angleTool').classList.add('active');
-                    break;
-                case 'probe':
-                    cornerstoneTools.setToolActive('Probe', { mouseButtonMask: 1 });
-                    document.getElementById('pixelProbeTool').classList.add('active');
-                    break;
-                case 'textMarker':
-                    cornerstoneTools.setToolActive('TextMarker', { mouseButtonMask: 1 });
-                    document.getElementById('textAnnotationTool').classList.add('active');
-                    break;
-                case 'arrowAnnotate':
-                    cornerstoneTools.setToolActive('ArrowAnnotate', { mouseButtonMask: 1 });
-                    document.getElementById('arrowAnnotationTool').classList.add('active');
-                    break;
-                case 'freehandRoi':
-                    cornerstoneTools.setToolActive('FreehandRoi', { mouseButtonMask: 1 });
-                    document.getElementById('freehandTool').classList.add('active');
-                    break;
-            }
+        // For now, just update the UI without cornerstone tools
+        this.currentTool = tool;
+        
+        switch (tool) {
+            case 'windowLevel':
+                document.getElementById('windowLevelTool')?.classList.add('active');
+                break;
+            case 'pan':
+                document.getElementById('panTool')?.classList.add('active');
+                break;
+            case 'zoom':
+                document.getElementById('zoomTool')?.classList.add('active');
+                break;
+            case 'length':
+                document.getElementById('lengthTool')?.classList.add('active');
+                break;
+            case 'area':
+                document.getElementById('areaTool')?.classList.add('active');
+                break;
+            case 'angle':
+                document.getElementById('angleTool')?.classList.add('active');
+                break;
+            case 'probe':
+                document.getElementById('pixelProbeTool')?.classList.add('active');
+                break;
+            case 'textMarker':
+                document.getElementById('textAnnotationTool')?.classList.add('active');
+                break;
+            case 'arrowAnnotate':
+                document.getElementById('arrowAnnotationTool')?.classList.add('active');
+                break;
+            case 'freehandRoi':
+                document.getElementById('freehandTool')?.classList.add('active');
+                break;
+        }
+        
+        console.log('Tool changed to:', tool);
+        
+        // Show tool instructions for W/L, Pan, and Zoom tools
+        if (['windowLevel', 'pan', 'zoom'].includes(tool)) {
+            this.showWindowLevelInstructions();
+        }
+        
+        // Update the viewport overlay to show current tool
+        if (this.element && this.isViewerInitialized) {
+            const viewport = cornerstone.getViewport(this.element);
+            this.updateViewportOverlay({ detail: { viewport } });
         }
     }
 
