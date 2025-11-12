@@ -395,7 +395,8 @@ class DicomViewer {
             console.log('Loaded image IDs:', imageIds);
             
             this.currentImageIds = imageIds;
-            this.updateImageList(validFiles);
+            this.currentFiles = validFiles; // Store files for reference
+            this.updateImageList(imageIds);
             
             if (imageIds.length > 0) {
                 console.log('Attempting to display first image...');
@@ -418,8 +419,38 @@ class DicomViewer {
         for (const file of files) {
             try {
                 const imageId = cornerstoneWADOImageLoader.wadouri.fileManager.add(file);
-                imageIds.push(imageId);
-                console.log('Successfully loaded file:', file.name, 'with imageId:', imageId);
+                
+                // Try to detect multi-frame DICOM files
+                try {
+                    const image = await cornerstone.loadImage(imageId);
+                    const dataSet = image.data;
+                    
+                    // Check for number of frames
+                    let numFrames = 1;
+                    if (dataSet && dataSet.elements.x00280008) {
+                        numFrames = parseInt(dataSet.string('x00280008')) || 1;
+                    }
+                    
+                    console.log(`File ${file.name} has ${numFrames} frame(s)`);
+                    
+                    if (numFrames > 1) {
+                        // Multi-frame DICOM - create imageIds for each frame
+                        for (let frame = 0; frame < numFrames; frame++) {
+                            const frameImageId = `${imageId}?frame=${frame}`;
+                            imageIds.push(frameImageId);
+                            console.log(`Added frame ${frame + 1}/${numFrames}: ${frameImageId}`);
+                        }
+                    } else {
+                        // Single frame
+                        imageIds.push(imageId);
+                        console.log('Successfully loaded single-frame file:', file.name);
+                    }
+                } catch (error) {
+                    // If we can't load the image, just add the basic imageId
+                    console.warn('Could not detect frames, adding as single image:', error);
+                    imageIds.push(imageId);
+                }
+                
             } catch (error) {
                 console.warn(`Failed to load file ${file.name}:`, error);
             }
@@ -437,16 +468,38 @@ class DicomViewer {
         });
     }
 
-    updateImageList(files) {
+    updateImageList(imageIds) {
         const imageList = document.getElementById('imageList');
         imageList.innerHTML = '';
         
-        files.forEach((file, index) => {
+        imageIds.forEach((imageId, index) => {
             const item = document.createElement('div');
             item.className = 'image-item';
+            
+            // Extract filename and frame info from imageId
+            let displayName = `Image ${index + 1}`;
+            let frameInfo = '';
+            
+            // Parse the imageId to get filename and frame number
+            const match = imageId.match(/wadouri:(.+?)(?:\?frame=(\d+))?$/);
+            if (match) {
+                const fileId = match[1];
+                const frameNum = match[2];
+                
+                // Try to get a better filename if available
+                if (this.currentFiles) {
+                    // This is approximate - just show file index for now
+                    displayName = `Image ${index + 1}`;
+                }
+                
+                if (frameNum !== undefined) {
+                    frameInfo = `Frame ${parseInt(frameNum) + 1}`;
+                    displayName += ` (${frameInfo})`;
+                }
+            }
+            
             item.innerHTML = `
-                <div class="filename">${file.name}</div>
-                <div class="details">Size: ${this.formatFileSize(file.size)}</div>
+                <div class="filename">${displayName}</div>
             `;
             
             item.addEventListener('click', () => {
@@ -457,7 +510,7 @@ class DicomViewer {
             imageList.appendChild(item);
         });
         
-        if (files.length > 0) {
+        if (imageIds.length > 0) {
             this.setActiveImageItem(0);
         }
     }
@@ -705,9 +758,9 @@ class DicomViewer {
                     viewport.voi.windowCenter = startWL + deltaY * 2;
                     
                 } else if (this.currentTool === 'pan') {
-                    // Pan: move the image
-                    viewport.translation.x = startPanX + deltaX;
-                    viewport.translation.y = startPanY + deltaY;
+                    // Pan: move the image - divide by scale to maintain 1:1 movement
+                    viewport.translation.x = startPanX + (deltaX / viewport.scale);
+                    viewport.translation.y = startPanY + (deltaY / viewport.scale);
                     
                 } else if (this.currentTool === 'zoom') {
                     // Zoom: vertical movement controls zoom
@@ -854,6 +907,19 @@ class DicomViewer {
             
             const tagsContainer = document.getElementById('dicomTags');
             tagsContainer.innerHTML = '';
+            
+            // Check for frame information
+            const frameMatch = imageId.match(/\?frame=(\d+)$/);
+            if (frameMatch) {
+                const frameNum = parseInt(frameMatch[1]) + 1;
+                this.addTagToDisplay('Current Frame', frameNum.toString(), tagsContainer);
+            }
+            
+            // Check total number of frames
+            if (dataSet.elements.x00280008) {
+                const numFrames = dataSet.string('x00280008');
+                this.addTagToDisplay('Total Frames', numFrames, tagsContainer);
+            }
             
             // Important DICOM tags to display
             const importantTags = {
