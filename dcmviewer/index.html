@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DICOM Viewer</title>
+    <link rel="stylesheet" href="styles/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/dicom-parser@1.8.21/dist/dicomParser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cornerstone-core@2.6.1/dist/cornerstone.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cornerstone-web-image-loader@2.1.1/dist/cornerstoneWebImageLoader.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cornerstone-wado-image-loader@4.13.2/dist/cornerstoneWADOImageLoader.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cornerstone-tools@6.0.10/dist/cornerstoneTools.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>DICOM Medical Image Viewer</h1>
+            <div class="controls">
+                <input type="file" id="fileInput" multiple accept=".dcm,.dicom" class="file-input">
+                <label for="fileInput" class="file-label">Select DICOM Files</label>
+                <button id="loadDirectory" class="btn">Load Directory</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <h3>Image List</h3>
+                <div id="imageList" class="image-list">
+                    <p class="placeholder">No images loaded</p>
+                </div>
+            </div>
+
+            <div class="viewer-container">
+                <div class="viewer-controls">
+                    <div class="control-group">
+                        <button id="windowLevelTool" class="tool-btn active" title="Window/Level">W/L</button>
+                        <button id="panTool" class="tool-btn" title="Pan">Pan</button>
+                        <button id="zoomTool" class="tool-btn" title="Zoom">Zoom</button>
+                        <button id="resetView" class="tool-btn" title="Reset View">Reset</button>
+                    </div>
+                    <div class="control-group measurement-tools">
+                        <button id="lengthTool" class="tool-btn" title="Length Measurement">📏</button>
+                        <button id="areaTool" class="tool-btn" title="Area Measurement">📐</button>
+                        <button id="angleTool" class="tool-btn" title="Angle Measurement">∠</button>
+                        <button id="pixelProbeTool" class="tool-btn" title="Pixel Probe">🔍</button>
+                    </div>
+                    <div class="control-group annotation-tools">
+                        <button id="textAnnotationTool" class="tool-btn" title="Text Annotation">📝</button>
+                        <button id="arrowAnnotationTool" class="tool-btn" title="Arrow Annotation">→</button>
+                        <button id="freehandTool" class="tool-btn" title="Freehand Drawing">✏️</button>
+                    </div>
+                    <div class="control-group export-tools">
+                        <button id="exportImage" class="tool-btn" title="Export Image">💾</button>
+                        <button id="exportMeasurements" class="tool-btn" title="Export Measurements">📊</button>
+                        <button id="printView" class="tool-btn" title="Print">🖨️</button>
+                    </div>
+                    <div class="info-group">
+                        <span id="imageInfo" class="image-info">No image loaded</span>
+                    </div>
+                </div>
+
+                <div id="dicomViewer" class="dicom-viewer">
+                    <div class="viewer-placeholder">
+                        <div class="placeholder-content">
+                            <svg width="100" height="100" viewBox="0 0 100 100">
+                                <rect x="10" y="10" width="80" height="60" fill="none" stroke="#ccc" stroke-width="2"/>
+                                <circle cx="30" cy="30" r="5" fill="#ccc"/>
+                                <path d="M15 60 L35 45 L50 55 L85 25" fill="none" stroke="#ccc" stroke-width="2"/>
+                            </svg>
+                            <p>Select DICOM files to view</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="image-details">
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="dicom-info">DICOM Info</button>
+                        <button class="tab-btn" data-tab="measurements">Measurements</button>
+                        <button class="tab-btn" data-tab="annotations">Annotations</button>
+                    </div>
+                    
+                    <div id="dicom-info" class="tab-content active">
+                        <h4>Image Details</h4>
+                        <div id="dicomTags" class="dicom-tags">
+                            <p>No image selected</p>
+                        </div>
+                    </div>
+                    
+                    <div id="measurements" class="tab-content">
+                        <h4>Measurements</h4>
+                        <div id="measurementsList" class="measurements-list">
+                            <p>No measurements taken</p>
+                        </div>
+                        <div class="measurement-controls">
+                            <button id="clearAllMeasurements" class="btn-small">Clear All</button>
+                        </div>
+                    </div>
+                    
+                    <div id="annotations" class="tab-content">
+                        <h4>Annotations</h4>
+                        <div id="annotationsList" class="annotations-list">
+                            <p>No annotations added</p>
+                        </div>
+                        <div class="annotation-controls">
+                            <button id="clearAllAnnotations" class="btn-small">Clear All</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Image Dialog -->
+    <div id="exportImageDialog" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Export Image</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Format:</label>
+                    <select id="exportFormat">
+                        <option value="png">PNG (Lossless)</option>
+                        <option value="jpeg">JPEG (Compressed)</option>
+                    </select>
+                </div>
+                <div class="form-group" id="qualityGroup">
+                    <label>Quality:</label>
+                    <input type="range" id="exportQuality" min="1" max="100" value="90">
+                    <span id="qualityValue">90%</span>
+                </div>
+                <div class="form-group">
+                    <label>Include Annotations:</label>
+                    <input type="checkbox" id="includeAnnotations" checked>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelExport" class="btn btn-secondary">Cancel</button>
+                <button id="confirmExport" class="btn btn-primary">Export</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Measurements Dialog -->
+    <div id="exportMeasurementsDialog" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Export Measurements</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Format:</label>
+                    <select id="measurementExportFormat">
+                        <option value="csv">CSV (Comma Separated)</option>
+                        <option value="json">JSON (JavaScript Object)</option>
+                        <option value="txt">TXT (Plain Text)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Include Patient Info:</label>
+                    <input type="checkbox" id="includePatientInfo" checked>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelMeasurementExport" class="btn btn-secondary">Cancel</button>
+                <button id="confirmMeasurementExport" class="btn btn-primary">Export</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="scripts/script.js"></script>
+</body>
+</html>
