@@ -725,6 +725,8 @@ class DicomViewer {
         // Listen for viewport changes to update the overlay
         this.element.addEventListener('cornerstoneimagerendered', (e) => {
             this.updateViewportOverlay(e);
+            // Ensure measurement canvas stays in sync with Cornerstone canvas
+            this.syncMeasurementCanvasSize();
             this.redrawMeasurements();
         });
         
@@ -750,9 +752,62 @@ class DicomViewer {
     
     resizeMeasurementCanvas() {
         if (this.measurementCanvas && this.element) {
-            this.measurementCanvas.width = this.element.clientWidth;
-            this.measurementCanvas.height = this.element.clientHeight;
-            this.redrawMeasurements();
+            try {
+                const enabledElement = cornerstone.getEnabledElement(this.element);
+                const cornerstoneCanvas = enabledElement.canvas;
+                
+                // Match the Cornerstone canvas size exactly (backing store size, not display size)
+                this.measurementCanvas.width = cornerstoneCanvas.width;
+                this.measurementCanvas.height = cornerstoneCanvas.height;
+                
+                // Also match the display size via CSS
+                const rect = this.element.getBoundingClientRect();
+                this.measurementCanvas.style.width = rect.width + 'px';
+                this.measurementCanvas.style.height = rect.height + 'px';
+                
+                console.log('Measurement canvas resized to match Cornerstone canvas:', 
+                    cornerstoneCanvas.width, 'x', cornerstoneCanvas.height,
+                    'Display:', rect.width, 'x', rect.height);
+                
+                this.redrawMeasurements();
+            } catch (e) {
+                // Fallback if Cornerstone not initialized yet
+                this.measurementCanvas.width = this.element.clientWidth;
+                this.measurementCanvas.height = this.element.clientHeight;
+                this.redrawMeasurements();
+            }
+        }
+    }
+
+    syncMeasurementCanvasSize() {
+        if (this.measurementCanvas && this.element) {
+            try {
+                const enabledElement = cornerstone.getEnabledElement(this.element);
+                const cornerstoneCanvas = enabledElement.canvas;
+                
+                // Only resize if dimensions changed
+                if (this.measurementCanvas.width !== cornerstoneCanvas.width ||
+                    this.measurementCanvas.height !== cornerstoneCanvas.height) {
+                    
+                    console.log('Syncing measurement canvas size:', 
+                        'Old:', this.measurementCanvas.width, 'x', this.measurementCanvas.height,
+                        'New:', cornerstoneCanvas.width, 'x', cornerstoneCanvas.height);
+                    
+                    // Match the Cornerstone canvas size exactly
+                    this.measurementCanvas.width = cornerstoneCanvas.width;
+                    this.measurementCanvas.height = cornerstoneCanvas.height;
+                    
+                    // Also match the display size via CSS
+                    const rect = this.element.getBoundingClientRect();
+                    this.measurementCanvas.style.width = rect.width + 'px';
+                    this.measurementCanvas.style.height = rect.height + 'px';
+                    
+                    // Canvas resize clears content, so we need to redraw
+                    // But this is already handled by the caller
+                }
+            } catch (e) {
+                // Ignore if Cornerstone not ready
+            }
         }
     }
 
@@ -769,8 +824,18 @@ class DicomViewer {
         
         const mouseDown = (e) => {
             const rect = this.element.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const displayX = e.clientX - rect.left;
+            const displayY = e.clientY - rect.top;
+            
+            // Convert display coordinates to canvas coordinates
+            const enabledElement = cornerstone.getEnabledElement(this.element);
+            const canvas = enabledElement.canvas;
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = displayX * scaleX;
+            const y = displayY * scaleY;
+            
+            console.log('MouseDown - Display:', displayX, displayY, 'Canvas:', x, y, 'Scale:', scaleX, scaleY);
             
             // Middle mouse button (1) for Pan/Zoom, Left (0) or Middle (1) for W/L
             const isMiddleButton = e.button === 1;
@@ -854,8 +919,16 @@ class DicomViewer {
         
         const mouseMove = (e) => {
             const rect = this.element.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const displayX = e.clientX - rect.left;
+            const displayY = e.clientY - rect.top;
+            
+            // Convert display coordinates to canvas coordinates
+            const enabledElement = cornerstone.getEnabledElement(this.element);
+            const canvas = enabledElement.canvas;
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = displayX * scaleX;
+            const y = displayY * scaleY;
             
             // Handle measurement point dragging
             if (this.isDrawing && this.currentMeasurement && draggedPoint !== null) {
@@ -927,8 +1000,16 @@ class DicomViewer {
         
         const mouseUp = (e) => {
             const rect = this.element.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const displayX = e.clientX - rect.left;
+            const displayY = e.clientY - rect.top;
+            
+            // Convert display coordinates to canvas coordinates
+            const enabledElement = cornerstone.getEnabledElement(this.element);
+            const canvas = enabledElement.canvas;
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = displayX * scaleX;
+            const y = displayY * scaleY;
             
             // Complete measurement dragging
             if (this.isDrawing && draggedPoint !== null) {
@@ -1016,12 +1097,22 @@ class DicomViewer {
     // Convert canvas display coordinates to image pixel coordinates
     canvasToImageCoords(canvasPoint) {
         try {
+            // Since measurement canvas now matches Cornerstone canvas size exactly,
+            // we can directly use canvasToPixel which accounts for pan/zoom
             const pixelCoords = cornerstone.canvasToPixel(this.element, canvasPoint);
+            
+            const viewport = cornerstone.getViewport(this.element);
+            console.log('canvasToImageCoords - Input:', canvasPoint);
+            console.log('Viewport:', { scale: viewport.scale, translation: viewport.translation });
+            console.log('Pixel coords (raw):', pixelCoords);
+            
             // Round to integer pixel coordinates
-            return {
+            const result = {
                 x: Math.round(pixelCoords.x),
                 y: Math.round(pixelCoords.y)
             };
+            console.log('Pixel coords (rounded):', result);
+            return result;
         } catch (e) {
             console.warn('Failed to convert canvas to image coords:', e);
             return canvasPoint;
@@ -1031,6 +1122,8 @@ class DicomViewer {
     // Convert image pixel coordinates to canvas display coordinates
     imageToCanvasCoords(imagePoint) {
         try {
+            // Since measurement canvas matches Cornerstone canvas size exactly,
+            // pixelToCanvas directly gives us the right coordinates
             return cornerstone.pixelToCanvas(this.element, imagePoint);
         } catch (e) {
             console.warn('Failed to convert image to canvas coords:', e);
@@ -1247,14 +1340,11 @@ class DicomViewer {
                     x = clampedX;
                     y = clampedY;
                     
-                    // Flip Y coordinate for pixel data access (image data is stored top-to-bottom)
-                    const flippedY = image.height - 1 - y;
-                    
                     // Read pixel value
                     const pixelData = image.getPixelData();
-                    const index = flippedY * image.width + x;
+                    const index = y * image.width + x;
                     const pixelValue = pixelData[index];
-                    console.log('Index:', index, 'Value:', pixelValue, 'Clamped:', wasClamped, 'FlippedY:', flippedY);
+                    console.log('Index:', index, 'Value:', pixelValue, 'Clamped:', wasClamped, 'Y:', y);
                     
                     ctx.fillText(`Coords: (${x}, ${y})${wasClamped ? ' *' : ''}`, p.x + 15, p.y - 5);
                     ctx.fillText(`Value: ${pixelValue}`, p.x + 15, p.y + 10);
@@ -1374,8 +1464,7 @@ class DicomViewer {
                     
                     if (normalized <= 1) {
                         // Flip Y coordinate for pixel data access
-                        const flippedY = height - 1 - Math.floor(y);
-                        const index = flippedY * width + Math.floor(x);
+                        const index = Math.floor(y) * width + Math.floor(x);
                         if (index >= 0 && index < pixelData.length) {
                             const value = pixelData[index];
                             sum += value;

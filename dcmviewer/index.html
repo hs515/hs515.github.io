@@ -33,36 +33,36 @@
             </div>
 
             <div class="viewer-container">
-                <div class="viewer-controls">
-                    <div class="control-group">
-                        <button id="windowLevelTool" class="tool-btn active" title="Window/Level - Use left mouse button + drag (horizontal = width/contrast, vertical = level/brightness)">W/L</button>
-                        <button id="panTool" class="tool-btn" title="Pan">Pan</button>
-                        <button id="zoomTool" class="tool-btn" title="Zoom">Zoom</button>
-                        <button id="frameSlider" class="tool-btn" title="Frame Slider - Drag to navigate through frames">🎞️</button>
-                        <button id="resetView" class="tool-btn" title="Reset View">Reset</button>
+                <div class="viewer-and-controls">
+                    <div class="viewer-controls">
+                        <div class="control-group">
+                            <button id="windowLevelTool" class="tool-btn active" title="Window/Level - Use left mouse button + drag (horizontal = width/contrast, vertical = level/brightness)">W/L</button>
+                            <button id="panTool" class="tool-btn" title="Pan">Pan</button>
+                            <button id="zoomTool" class="tool-btn" title="Zoom">Zoom</button>
+                            <button id="frameSlider" class="tool-btn" title="Frame Slider - Drag to navigate through frames">🎞️</button>
+                            <button id="resetView" class="tool-btn" title="Reset View">Reset</button>
+                        </div>
+                        <div class="control-group measurement-tools">
+                            <button id="lengthTool" class="tool-btn" title="Length Measurement">📏</button>
+                            <button id="areaTool" class="tool-btn" title="Area Measurement">📐</button>
+                            <button id="angleTool" class="tool-btn" title="Angle Measurement">∠</button>
+                            <button id="pixelProbeTool" class="tool-btn" title="Pixel Probe">🔍</button>
+                        </div>
+                        <div class="control-group annotation-tools">
+                            <button id="textAnnotationTool" class="tool-btn" title="Text Annotation">📝</button>
+                            <button id="arrowAnnotationTool" class="tool-btn" title="Arrow Annotation">→</button>
+                            <button id="freehandTool" class="tool-btn" title="Freehand Drawing">✏️</button>
+                        </div>
+                        <div class="control-group export-tools">
+                            <button id="exportImage" class="tool-btn" title="Export Image">💾</button>
+                            <button id="exportMeasurements" class="tool-btn" title="Export Measurements">📊</button>
+                            <button id="printView" class="tool-btn" title="Print">🖨️</button>
+                        </div>
+                        <div class="info-group">
+                            <span id="imageInfo" class="image-info">No image loaded</span>
+                        </div>
                     </div>
-                    <div class="control-group measurement-tools">
-                        <button id="lengthTool" class="tool-btn" title="Length Measurement">📏</button>
-                        <button id="areaTool" class="tool-btn" title="Area Measurement">📐</button>
-                        <button id="angleTool" class="tool-btn" title="Angle Measurement">∠</button>
-                        <button id="pixelProbeTool" class="tool-btn" title="Pixel Probe">🔍</button>
-                    </div>
-                    <div class="control-group annotation-tools">
-                        <button id="textAnnotationTool" class="tool-btn" title="Text Annotation">📝</button>
-                        <button id="arrowAnnotationTool" class="tool-btn" title="Arrow Annotation">→</button>
-                        <button id="freehandTool" class="tool-btn" title="Freehand Drawing">✏️</button>
-                    </div>
-                    <div class="control-group export-tools">
-                        <button id="exportImage" class="tool-btn" title="Export Image">💾</button>
-                        <button id="exportMeasurements" class="tool-btn" title="Export Measurements">📊</button>
-                        <button id="printView" class="tool-btn" title="Print">🖨️</button>
-                    </div>
-                    <div class="info-group">
-                        <span id="imageInfo" class="image-info">No image loaded</span>
-                    </div>
-                </div>
 
-                <div class="viewer-and-details">
                     <div id="dicomViewer" class="dicom-viewer">
                         <div class="viewer-placeholder">
                             <div class="placeholder-content">
@@ -75,8 +75,9 @@
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <div class="image-details">
+                <div class="image-details">
                     <div class="tabs">
                         <button class="tab-btn active" data-tab="dicom-info">DICOM Info</button>
                         <button class="tab-btn" data-tab="measurements">Measurements</button>
@@ -109,7 +110,6 @@
                             <button id="clearAllAnnotations" class="btn-small">Clear All</button>
                         </div>
                     </div>
-                </div>
                 </div>
             </div>
         </div>

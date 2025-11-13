@@ -140,28 +140,18 @@ header h1 {
 .viewer-container {
     flex: 1;
     display: flex;
-    flex-direction: column;
-}
-
-.viewer-and-details {
-    flex: 1;
-    display: flex;
-    overflow: hidden;
 }
 
 /* Default: details at bottom (small screens) */
 @media (max-width: 1200px) {
-    .viewer-and-details {
-        flex-direction: column;
-    }
-    
     .dicom-viewer {
         flex: 1;
         min-height: 0;
     }
     
     .image-details {
-        height: 250px;
+        height: 300px; /* Fixed height for bottom panel on small screens */
+        flex: 0 0 auto; /* Don't grow or shrink */
         border-top: 1px solid #404040;
         border-right: none;
     }
@@ -169,10 +159,6 @@ header h1 {
 
 /* Large screens: details on the right */
 @media (min-width: 1201px) {
-    .viewer-and-details {
-        flex-direction: row;
-    }
-    
     .dicom-viewer {
         flex: 1;
         min-width: 0;
@@ -180,7 +166,7 @@ header h1 {
     
     .image-details {
         width: 350px;
-        height: auto;
+        height: 100%;
         border-left: 1px solid #404040;
         border-top: none;
     }
@@ -274,16 +260,19 @@ header h1 {
 .image-details {
     background-color: #2d2d2d;
     border-top: 1px solid #404040;
-    height: 250px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    min-height: 0; /* Allow flex children to shrink below content size */
+    flex: 1; /* Allow it to grow and fill available space */
 }
 
 .tabs {
     display: flex;
     background-color: #383838;
     border-bottom: 1px solid #404040;
+    padding: 0.2rem;
+    flex-shrink: 0; /* Prevent tabs from shrinking */
 }
 
 .tab-btn {
@@ -309,13 +298,15 @@ header h1 {
 }
 
 .tab-content {
-    flex: 1;
-    overflow-y: auto;
+    flex: 1 1 0;
     display: none;
+    min-height: 0; /* Important: allows scrolling within flex container */
+    overflow: hidden; /* Prevent this container from scrolling */
 }
 
 .tab-content.active {
-    display: block;
+    display: flex;
+    flex-direction: column;
 }
 
 .tab-content h4 {
@@ -324,12 +315,16 @@ header h1 {
     border-bottom: 1px solid #404040;
     font-size: 0.875rem;
     margin: 0;
+    flex-shrink: 0; /* Prevent header from shrinking */
 }
 
 .measurements-list, .annotations-list {
     padding: 1rem;
     font-size: 0.75rem;
     line-height: 1.4;
+    flex: 1 1 0;
+    overflow-y: auto;
+    min-height: 0;
 }
 
 .measurement-item, .annotation-item {
@@ -363,6 +358,7 @@ header h1 {
     padding: 0.5rem 1rem;
     border-top: 1px solid #404040;
     background-color: #383838;
+    flex-shrink: 0; /* Prevent controls from shrinking */
 }
 
 .btn-small {
@@ -399,6 +395,9 @@ header h1 {
     padding: 1rem;
     font-size: 0.75rem;
     line-height: 1.4;
+    flex: 1 1 0;
+    overflow-y: auto;
+    min-height: 0;
 }
 
 .tag-item {
