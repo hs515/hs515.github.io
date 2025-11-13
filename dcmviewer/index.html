@@ -3,7 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DICOM Viewer</title>
+    <title>DICOM Viewer - Free Online Medical Image Viewer & Analyzer</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Free online DICOM viewer for medical imaging. View, measure, and analyze DICOM images from CT, MRI, X-ray, and ultrasound. No installation required. Supports multi-frame DICOM files with advanced measurement tools.">
+    <meta name="keywords" content="DICOM viewer, medical image viewer, radiology viewer, CT viewer, MRI viewer, X-ray viewer, medical imaging software, PACS viewer, online DICOM viewer, free DICOM viewer, DICOM image analysis, medical image measurements">
+    <meta name="author" content="Medical Imaging Tools">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="English">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="DICOM Viewer - Free Online Medical Image Viewer">
+    <meta property="og:description" content="Professional DICOM viewer for viewing and analyzing medical images. Supports CT, MRI, X-ray with measurement tools and window/level controls.">
+    <meta property="og:site_name" content="DICOM Viewer">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="DICOM Viewer - Free Online Medical Image Viewer">
+    <meta name="twitter:description" content="View and analyze DICOM medical images online. Free, no installation required. Supports CT, MRI, X-ray imaging with advanced tools.">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://hs515.github.io/dcmviewer/">
+    
     <link rel="stylesheet" href="styles/styles.css">
     <script src="https://unpkg.com/hammerjs@2.0.8/hammer.min.js"></script>
     <script src="https://unpkg.com/dicom-parser@1.8.21/dist/dicomParser.min.js"></script>
@@ -21,6 +43,7 @@
                 <input type="file" id="fileInput" multiple accept=".dcm,.dicom" class="file-input">
                 <label for="fileInput" class="file-label">Select DICOM Files</label>
                 <button id="loadDirectory" class="btn">Load Directory</button>
+                <a href="mailto:haoh.shen@gmail.com?subject=DICOM%20Viewer%20Feedback" class="btn feedback-btn" title="Send feedback">📧 Feedback</a>
             </div>
         </header>
 

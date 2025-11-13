@@ -52,10 +52,21 @@ header h1 {
     cursor: pointer;
     font-size: 0.875rem;
     transition: background-color 0.2s;
+    text-decoration: none;
+    display: inline-block;
 }
 
 .file-label:hover, .btn:hover {
     background-color: #357abd;
+}
+
+.feedback-btn {
+    background-color: #28a745;
+    margin-left: 0.5rem;
+}
+
+.feedback-btn:hover {
+    background-color: #218838;
 }
 
 .main-content {
