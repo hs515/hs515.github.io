@@ -62,14 +62,14 @@
                             <button id="windowLevelTool" class="tool-btn active" title="Window/Level - Use left mouse button + drag (horizontal = width/contrast, vertical = level/brightness)">W/L</button>
                             <button id="panTool" class="tool-btn" title="Pan">Pan</button>
                             <button id="zoomTool" class="tool-btn" title="Zoom">Zoom</button>
-                            <button id="frameSlider" class="tool-btn" title="Frame Slider - Drag to navigate through frames">🎞️</button>
+                            <button id="frameSlider" class="tool-btn" title="Frame Slider - Drag to navigate through frames">Paging</button>
                             <button id="resetView" class="tool-btn" title="Reset View">Reset</button>
                         </div>
                         <div class="control-group measurement-tools">
                             <button id="lengthTool" class="tool-btn" title="Length Measurement">📏</button>
-                            <button id="areaTool" class="tool-btn" title="Area Measurement">📐</button>
+                            <button id="areaTool" class="tool-btn" title="Area Measurement">⭕</button>
                             <button id="angleTool" class="tool-btn" title="Angle Measurement">∠</button>
-                            <button id="pixelProbeTool" class="tool-btn" title="Pixel Probe">🔍</button>
+                            <button id="pixelProbeTool" class="tool-btn" title="Pixel Probe">➕</button>
                         </div>
                         <div class="control-group annotation-tools">
                             <button id="textAnnotationTool" class="tool-btn" title="Text Annotation">📝</button>
@@ -78,6 +78,7 @@
                         </div>
                         <div class="control-group export-tools">
                             <button id="exportImage" class="tool-btn" title="Export Image">💾</button>
+                            <button id="exportAllImages" class="tool-btn" title="Export All Images">💾📚</button>
                             <button id="exportMeasurements" class="tool-btn" title="Export Measurements">📊</button>
                             <button id="printView" class="tool-btn" title="Print">🖨️</button>
                         </div>
@@ -166,6 +167,41 @@
             <div class="modal-footer">
                 <button id="cancelExport" class="btn btn-secondary">Cancel</button>
                 <button id="confirmExport" class="btn btn-primary">Export</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export All Images Dialog -->
+    <div id="exportAllImagesDialog" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Export All Images</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Format:</label>
+                    <select id="exportAllFormat">
+                        <option value="png">PNG (Lossless)</option>
+                        <option value="jpeg">JPEG (Compressed)</option>
+                    </select>
+                </div>
+                <div class="form-group" id="qualityAllGroup">
+                    <label>Quality:</label>
+                    <input type="range" id="exportAllQuality" min="1" max="100" value="90">
+                    <span id="qualityAllValue">90%</span>
+                </div>
+                <div class="form-group">
+                    <label>Include Annotations:</label>
+                    <input type="checkbox" id="includeAllAnnotations" checked>
+                </div>
+                <div class="form-group">
+                    <p class="info-text">This will export all <span id="totalImagesCount">0</span> images with the same settings.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelExportAll" class="btn btn-secondary">Cancel</button>
+                <button id="confirmExportAll" class="btn btn-primary">Export All</button>
             </div>
         </div>
     </div>

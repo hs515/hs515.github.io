@@ -134,6 +134,10 @@ class DicomViewer {
             this.showExportImageDialog();
         });
 
+        document.getElementById('exportAllImages').addEventListener('click', () => {
+            this.showExportAllImagesDialog();
+        });
+
         document.getElementById('exportMeasurements').addEventListener('click', () => {
             this.showExportMeasurementsDialog();
         });
@@ -487,12 +491,19 @@ class DicomViewer {
         const imageList = document.getElementById('imageList');
         imageList.innerHTML = '';
         
+        // Calculate padding based on total number of images
+        const totalImages = imageIds.length;
+        const padding = totalImages.toString().length;
+        
         imageIds.forEach((imageId, index) => {
             const item = document.createElement('div');
             item.className = 'image-item';
             
+            // Pad the image number with zeros
+            const paddedNumber = (index + 1).toString().padStart(padding, '0');
+            
             // Extract filename and frame info from imageId
-            let displayName = `Image ${index + 1}`;
+            let displayName = `Image ${paddedNumber}`;
             let frameInfo = '';
             
             // Parse the imageId to get filename and frame number
@@ -504,7 +515,7 @@ class DicomViewer {
                 // Try to get a better filename if available
                 if (this.currentFiles) {
                     // This is approximate - just show file index for now
-                    displayName = `Image ${index + 1}`;
+                    displayName = `Image ${paddedNumber}`;
                 }
                 
                 if (frameNum !== undefined) {
@@ -883,7 +894,7 @@ class DicomViewer {
                 }
             }
             
-            if ((this.currentTool === 'pan' || this.currentTool === 'zoom' || this.currentTool === 'frameSlider') && isMiddleButton) {
+            if ((this.currentTool === 'pan' || this.currentTool === 'zoom') && isMiddleButton) {
                 isDragging = true;
                 startX = e.pageX;
                 startY = e.pageY;
@@ -894,14 +905,6 @@ class DicomViewer {
                 startScale = viewport.scale;
                 
                 console.log(`${this.currentTool} drag started`);
-                e.preventDefault();
-            } else if (this.currentTool === 'frameSlider' && isLeftButton) {
-                // Frame slider also works with left button
-                isDragging = true;
-                startX = e.pageX;
-                startY = e.pageY;
-                
-                console.log('Frame slider drag started');
                 e.preventDefault();
             } else if (this.currentTool === 'windowLevel' && (isLeftButton || isMiddleButton)) {
                 isDragging = true;
@@ -976,24 +979,9 @@ class DicomViewer {
                     // Zoom: vertical movement controls zoom
                     const zoomDelta = -deltaY * 0.01;
                     viewport.scale = Math.max(0.1, Math.min(10, startScale + zoomDelta));
-                } else if (this.currentTool === 'frameSlider') {
-                    // Frame slider: vertical movement changes frames (down = next, up = previous)
-                    if (this.currentImageIds.length > 1) {
-                        const sensitivity = 10; // pixels per frame
-                        const frameDelta = Math.floor(deltaY / sensitivity);
-                        const targetFrame = Math.max(0, Math.min(this.currentImageIds.length - 1, this.currentIndex + frameDelta));
-                        
-                        if (targetFrame !== this.currentIndex) {
-                            this.displayImage(targetFrame);
-                        }
-                        e.preventDefault();
-                        return; // Don't update viewport for frame slider
-                    }
                 }
                 
-                if (this.currentTool !== 'frameSlider') {
-                    cornerstone.setViewport(this.element, viewport);
-                }
+                cornerstone.setViewport(this.element, viewport);
                 e.preventDefault();
             }
         };
@@ -1059,6 +1047,28 @@ class DicomViewer {
         this.element.addEventListener('mousemove', mouseMove);
         this.element.addEventListener('mouseup', mouseUp);
         this.element.addEventListener('mouseleave', mouseUp);
+        
+        // Add wheel event handler for frame slider
+        const mouseWheel = (e) => {
+            if (this.currentTool === 'frameSlider' && this.currentImageIds.length > 1) {
+                e.preventDefault();
+                
+                // Normalize wheel delta (different browsers use different values)
+                const delta = e.deltaY || e.detail || e.wheelDelta;
+                const direction = delta > 0 ? 1 : -1;
+                
+                // Calculate target frame
+                const targetFrame = Math.max(0, Math.min(this.currentImageIds.length - 1, this.currentIndex + direction));
+                
+                if (targetFrame !== this.currentIndex) {
+                    this.displayImage(targetFrame);
+                    this.setActiveImageItem(targetFrame);
+                    console.log(`Frame slider: scrolled to frame ${targetFrame + 1}/${this.currentImageIds.length}`);
+                }
+            }
+        };
+        
+        this.element.addEventListener('wheel', mouseWheel, { passive: false });
         
         console.log('Mouse handlers installed for all tools');
     }
@@ -1635,13 +1645,13 @@ class DicomViewer {
         } else if (this.currentTool === 'frameSlider') {
             instructionContent = `
                 <h3>Frame Slider</h3>
-                <p><strong>Left or Middle Mouse Button + Drag:</strong></p>
+                <p><strong>Mouse Wheel:</strong></p>
                 <ul>
-                    <li>Drag <strong>Down</strong> → Next frames</li>
-                    <li>Drag <strong>Up</strong> → Previous frames</li>
+                    <li>Scroll <strong>Down</strong> → Next frame</li>
+                    <li>Scroll <strong>Up</strong> → Previous frame</li>
                 </ul>
                 <p style="margin-top: 0.5rem; color: #4a9eff; font-size: 0.9rem;">
-                    Works with multi-frame DICOM files
+                    Works with multi-frame DICOM files or multiple loaded images
                 </p>
             `;
         } else if (this.currentTool === 'length') {
@@ -1950,6 +1960,16 @@ class DicomViewer {
             document.getElementById('qualityValue').textContent = e.target.value + '%';
         });
 
+        // Export All format change handler
+        document.getElementById('exportAllFormat').addEventListener('change', (e) => {
+            const qualityAllGroup = document.getElementById('qualityAllGroup');
+            qualityAllGroup.style.display = e.target.value === 'jpeg' ? 'block' : 'none';
+        });
+
+        document.getElementById('exportAllQuality').addEventListener('input', (e) => {
+            document.getElementById('qualityAllValue').textContent = e.target.value + '%';
+        });
+
         // Modal close handlers
         document.querySelectorAll('.modal-close').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -1962,6 +1982,10 @@ class DicomViewer {
             document.getElementById('exportImageDialog').classList.add('hidden');
         });
 
+        document.getElementById('cancelExportAll').addEventListener('click', () => {
+            document.getElementById('exportAllImagesDialog').classList.add('hidden');
+        });
+
         document.getElementById('cancelMeasurementExport').addEventListener('click', () => {
             document.getElementById('exportMeasurementsDialog').classList.add('hidden');
         });
@@ -1969,6 +1993,10 @@ class DicomViewer {
         // Confirm button handlers
         document.getElementById('confirmExport').addEventListener('click', () => {
             this.exportImage();
+        });
+
+        document.getElementById('confirmExportAll').addEventListener('click', () => {
+            this.exportAllImages();
         });
 
         document.getElementById('confirmMeasurementExport').addEventListener('click', () => {
@@ -2023,14 +2051,24 @@ class DicomViewer {
             // Draw image
             ctx.drawImage(canvas, 0, 0);
 
+            // Draw annotations if enabled
+            if (includeAnnotations && this.measurementCanvas) {
+                ctx.drawImage(this.measurementCanvas, 0, 0);
+            }
+
             // Convert to blob and download
             const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
+            
+            // Calculate padding for filename
+            const totalImages = this.currentImageIds.length;
+            const padding = totalImages.toString().length;
+            const paddedNumber = (this.currentIndex + 1).toString().padStart(padding, '0');
             
             exportCanvas.toBlob((blob) => {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `dicom-image-${this.currentIndex + 1}.${format}`;
+                a.download = `dicom-image-${paddedNumber}.${format}`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -2042,6 +2080,121 @@ class DicomViewer {
         } catch (error) {
             console.error('Export error:', error);
             alert('Error exporting image');
+        }
+    }
+
+    showExportAllImagesDialog() {
+        if (!this.isViewerInitialized || this.currentImageIds.length === 0) {
+            alert('No images loaded to export');
+            return;
+        }
+        document.getElementById('totalImagesCount').textContent = this.currentImageIds.length;
+        document.getElementById('exportAllImagesDialog').classList.remove('hidden');
+    }
+
+    async exportAllImages() {
+        try {
+            const format = document.getElementById('exportAllFormat').value;
+            const quality = document.getElementById('exportAllQuality').value / 100;
+            const includeAnnotations = document.getElementById('includeAllAnnotations').checked;
+            const totalImages = this.currentImageIds.length;
+
+            if (totalImages === 0) {
+                alert('No images to export');
+                return;
+            }
+
+            // Store current index to restore later
+            const originalIndex = this.currentIndex;
+            
+            // Calculate padding for filenames
+            const padding = totalImages.toString().length;
+            
+            // Create a temporary status message
+            const statusDiv = document.createElement('div');
+            statusDiv.style.position = 'fixed';
+            statusDiv.style.top = '50%';
+            statusDiv.style.left = '50%';
+            statusDiv.style.transform = 'translate(-50%, -50%)';
+            statusDiv.style.background = 'rgba(0, 0, 0, 0.8)';
+            statusDiv.style.color = 'white';
+            statusDiv.style.padding = '20px';
+            statusDiv.style.borderRadius = '8px';
+            statusDiv.style.zIndex = '10000';
+            statusDiv.textContent = 'Exporting images: 0 / ' + totalImages;
+            document.body.appendChild(statusDiv);
+
+            // Export each image
+            for (let i = 0; i < totalImages; i++) {
+                // Load the image if not current
+                if (i !== this.currentIndex) {
+                    await this.displayImage(i);
+                    // Wait a bit for the image to render
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
+
+                // Get canvas from cornerstone
+                const canvas = this.element.querySelector('canvas');
+                if (!canvas) {
+                    console.warn(`No canvas found for image ${i + 1}`);
+                    continue;
+                }
+
+                // Create export canvas
+                const exportCanvas = document.createElement('canvas');
+                const ctx = exportCanvas.getContext('2d');
+                exportCanvas.width = canvas.width;
+                exportCanvas.height = canvas.height;
+
+                // Draw image
+                ctx.drawImage(canvas, 0, 0);
+
+                // Draw annotations if enabled
+                if (includeAnnotations && this.measurementCanvas) {
+                    ctx.drawImage(this.measurementCanvas, 0, 0);
+                }
+
+                // Convert to blob and download
+                const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
+                
+                // Pad the image number with zeros
+                const paddedNumber = (i + 1).toString().padStart(padding, '0');
+                
+                await new Promise((resolve) => {
+                    exportCanvas.toBlob((blob) => {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `dicom-image-${paddedNumber}.${format}`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        resolve();
+                    }, mimeType, quality);
+                });
+
+                // Update status
+                statusDiv.textContent = `Exporting images: ${i + 1} / ${totalImages}`;
+                
+                // Small delay between downloads to avoid browser blocking
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            // Restore original image
+            if (originalIndex !== this.currentIndex) {
+                await this.displayImage(originalIndex);
+            }
+
+            // Remove status message
+            document.body.removeChild(statusDiv);
+            
+            document.getElementById('exportAllImagesDialog').classList.add('hidden');
+            alert(`Successfully exported ${totalImages} images!`);
+            
+        } catch (error) {
+            console.error('Export all error:', error);
+            alert('Error exporting images: ' + error.message);
         }
     }
 
