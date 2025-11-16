@@ -149,10 +149,16 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label>Format:</label>
-                    <select id="exportFormat">
-                        <option value="png">PNG (Lossless)</option>
-                        <option value="jpeg">JPEG (Compressed)</option>
-                    </select>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="exportFormat" value="png" checked>
+                            <span>PNG (Lossless)</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="exportFormat" value="jpeg">
+                            <span>JPEG (Compressed)</span>
+                        </label>
+                    </div>
                 </div>
                 <div class="form-group" id="qualityGroup">
                     <label>Quality:</label>
@@ -181,10 +187,16 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label>Format:</label>
-                    <select id="exportAllFormat">
-                        <option value="png">PNG (Lossless)</option>
-                        <option value="jpeg">JPEG (Compressed)</option>
-                    </select>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="exportAllFormat" value="png" checked>
+                            <span>PNG (Lossless)</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="exportAllFormat" value="jpeg">
+                            <span>JPEG (Compressed)</span>
+                        </label>
+                    </div>
                 </div>
                 <div class="form-group" id="qualityAllGroup">
                     <label>Quality:</label>

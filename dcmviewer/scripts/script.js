@@ -590,7 +590,7 @@ class DicomViewer {
                     try {
                         this.enableWindowLevelTool();
                         this.toolsEnabled = true;
-                        this.showWindowLevelInstructions();
+                        // this.showToolsInstructions();
                     } catch (error) {
                         console.error('Could not enable tools (image will still display):', error);
                     }
@@ -1602,7 +1602,7 @@ class DicomViewer {
         }
     }
 
-    showWindowLevelInstructions() {
+    showToolsInstructions() {
         // Create a temporary instruction overlay
         const instructions = document.createElement('div');
         instructions.className = 'wl-instructions';
@@ -1900,9 +1900,9 @@ class DicomViewer {
         }
         
         // Show tool instructions for interactive tools
-        if (['windowLevel', 'pan', 'zoom', 'frameSlider', 'length', 'angle', 'area', 'probe'].includes(tool)) {
-            this.showWindowLevelInstructions();
-        }
+        // if (['windowLevel', 'pan', 'zoom', 'frameSlider', 'length', 'angle', 'area', 'probe'].includes(tool)) {
+        //     this.showToolsInstructions();
+        // }
         
         // Update the viewport overlay to show current tool
         if (this.element && this.isViewerInitialized) {
@@ -1950,27 +1950,65 @@ class DicomViewer {
     }
 
     setupExportDialogs() {
-        // Export Image Dialog
-        document.getElementById('exportFormat').addEventListener('change', (e) => {
-            const qualityGroup = document.getElementById('qualityGroup');
-            qualityGroup.style.display = e.target.value === 'jpeg' ? 'block' : 'none';
+        // Export Image Dialog - now using radio buttons
+        const exportFormatRadios = document.querySelectorAll('input[name="exportFormat"]');
+        
+        exportFormatRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const qualityGroup = document.getElementById('qualityGroup');
+                if (qualityGroup) {
+                    qualityGroup.style.display = e.target.value === 'jpeg' ? 'block' : 'none';
+                }
+            });
         });
 
-        document.getElementById('exportQuality').addEventListener('input', (e) => {
-            document.getElementById('qualityValue').textContent = e.target.value + '%';
+        const exportQuality = document.getElementById('exportQuality');
+        if (exportQuality) {
+            exportQuality.addEventListener('input', (e) => {
+                const qualityValue = document.getElementById('qualityValue');
+                if (qualityValue) {
+                    qualityValue.textContent = e.target.value + '%';
+                }
+            });
+        }
+        
+        // Initialize quality group visibility
+        const checkedFormat = document.querySelector('input[name="exportFormat"]:checked');
+        const qualityGroup = document.getElementById('qualityGroup');
+        if (checkedFormat && qualityGroup) {
+            qualityGroup.style.display = checkedFormat.value === 'jpeg' ? 'block' : 'none';
+        }
+
+        // Export All Images Dialog
+        const exportAllFormatRadios = document.querySelectorAll('input[name="exportAllFormat"]');
+        
+        exportAllFormatRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const qualityAllGroup = document.getElementById('qualityAllGroup');
+                if (qualityAllGroup) {
+                    qualityAllGroup.style.display = e.target.value === 'jpeg' ? 'block' : 'none';
+                }
+            });
         });
 
-        // Export All format change handler
-        document.getElementById('exportAllFormat').addEventListener('change', (e) => {
-            const qualityAllGroup = document.getElementById('qualityAllGroup');
-            qualityAllGroup.style.display = e.target.value === 'jpeg' ? 'block' : 'none';
-        });
+        const exportAllQuality = document.getElementById('exportAllQuality');
+        if (exportAllQuality) {
+            exportAllQuality.addEventListener('input', (e) => {
+                const qualityAllValue = document.getElementById('qualityAllValue');
+                if (qualityAllValue) {
+                    qualityAllValue.textContent = e.target.value + '%';
+                }
+            });
+        }
+        
+        // Initialize quality group visibility for export all
+        const checkedAllFormat = document.querySelector('input[name="exportAllFormat"]:checked');
+        const qualityAllGroup = document.getElementById('qualityAllGroup');
+        if (checkedAllFormat && qualityAllGroup) {
+            qualityAllGroup.style.display = checkedAllFormat.value === 'jpeg' ? 'block' : 'none';
+        }
 
-        document.getElementById('exportAllQuality').addEventListener('input', (e) => {
-            document.getElementById('qualityAllValue').textContent = e.target.value + '%';
-        });
-
-        // Modal close handlers
+        // Modal close button handlers
         document.querySelectorAll('.modal-close').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.target.closest('.modal').classList.add('hidden');
@@ -2031,7 +2069,7 @@ class DicomViewer {
 
     exportImage() {
         try {
-            const format = document.getElementById('exportFormat').value;
+            const format = document.querySelector('input[name="exportFormat"]:checked').value;
             const quality = document.getElementById('exportQuality').value / 100;
             const includeAnnotations = document.getElementById('includeAnnotations').checked;
 
@@ -2094,7 +2132,7 @@ class DicomViewer {
 
     async exportAllImages() {
         try {
-            const format = document.getElementById('exportAllFormat').value;
+            const format = document.querySelector('input[name="exportAllFormat"]:checked').value;
             const quality = document.getElementById('exportAllQuality').value / 100;
             const includeAnnotations = document.getElementById('includeAllAnnotations').checked;
             const totalImages = this.currentImageIds.length;

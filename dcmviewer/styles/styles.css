@@ -512,8 +512,10 @@ header h1 {
     width: 90%;
     max-width: 500px;
     max-height: 90vh;
-    overflow: auto;
+    overflow: visible;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    position: relative;
+    z-index: 2001;
 }
 
 .modal-header {
@@ -552,6 +554,8 @@ header h1 {
 
 .modal-body {
     padding: 1.5rem;
+    overflow-y: auto;
+    max-height: calc(90vh - 120px);
 }
 
 .form-group {
@@ -574,6 +578,51 @@ header h1 {
     border-radius: 4px;
     color: #fff;
     font-size: 0.9rem;
+}
+
+.form-group select {
+    position: relative;
+    z-index: 9999 !important;
+    cursor: pointer;
+    -webkit-appearance: menulist !important;
+    -moz-appearance: menulist !important;
+    appearance: menulist !important;
+    pointer-events: auto !important;
+}
+
+.form-group select option {
+    background-color: #404040;
+    color: #fff;
+    padding: 0.5rem;
+}
+
+.radio-group {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 0.5rem;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    color: #ccc;
+    font-size: 0.9rem;
+}
+
+.radio-label input[type="radio"] {
+    margin-right: 0.5rem;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+}
+
+.radio-label span {
+    user-select: none;
+}
+
+.radio-label:hover {
+    color: #fff;
 }
 
 .form-group input[type="checkbox"] {
