@@ -861,3 +861,87 @@ header h1 {
     color: #4a9eff;
     min-width: 50px;
 }
+
+/* DICOM Header Table */
+.dicom-header-controls {
+    margin-bottom: 1rem;
+}
+
+.header-search {
+    width: 100%;
+    padding: 0.5rem;
+    background-color: #404040;
+    border: 1px solid #666;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 0.9rem;
+}
+
+.header-search:focus {
+    outline: none;
+    border-color: #4a9eff;
+}
+
+.dicom-header-table {
+    overflow-y: auto;
+    max-height: calc(100vh - 250px);
+}
+
+.dicom-header-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    table-layout: fixed;
+}
+
+.dicom-header-table th {
+    position: sticky;
+    top: 0;
+    background-color: #2d2d2d;
+    color: #4a9eff;
+    padding: 0.75rem 0.5rem;
+    text-align: left;
+    border-bottom: 2px solid #4a9eff;
+    font-weight: 600;
+    z-index: 10;
+}
+
+.dicom-header-table td {
+    padding: 0.5rem;
+    border-bottom: 1px solid #404040;
+    color: #ccc;
+}
+
+.dicom-header-table tr:hover {
+    background-color: #353535;
+}
+
+.tag-column {
+    font-family: monospace;
+    color: #4a9eff;
+    white-space: nowrap;
+}
+
+.vr-column {
+    font-family: monospace;
+    color: #ffa500;
+    text-align: center;
+    width: 50px;
+}
+
+.name-column {
+    color: #fff;
+    font-weight: 500;
+    width: 150px;
+    word-wrap: break-word;
+}
+
+.value-column {
+    color: #ccc;
+    word-break: break-word;
+    width: auto;
+}
+
+.dicom-header-table tr.hidden {
+    display: none;
+}

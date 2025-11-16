@@ -21,6 +21,10 @@ class DicomViewer {
         this.currentMeasurement = null;
         this.isDrawing = false;
         
+        // DICOM dictionary for tag descriptions
+        this.dicomDictionary = {};
+        this.currentDicomData = null;
+        
         this.init();
     }
 
@@ -65,6 +69,7 @@ class DicomViewer {
 
         this.setupEventListeners();
         this.setupTabNavigation();
+        this.loadDicomDictionary();
     }
 
     setupEventListeners() {
@@ -185,6 +190,84 @@ class DicomViewer {
                 button.classList.add('active');
                 document.getElementById(targetTab).classList.add('active');
             });
+        });
+        
+        // Setup header search
+        const headerSearch = document.getElementById('headerSearch');
+        if (headerSearch) {
+            headerSearch.addEventListener('input', (e) => {
+                this.filterDicomHeader(e.target.value);
+            });
+        }
+    }
+
+    async loadDicomDictionary() {
+        try {
+            const response = await fetch('https://hs515.github.io/dcmviewer/resources/gems-dicom-dict.txt');
+            if (!response.ok) {
+                throw new Error(`Failed to fetch dictionary: ${response.status}`);
+            }
+            const text = await response.text();
+            
+            // Parse the dictionary file
+            const lines = text.split('\n');
+            let parsedCount = 0;
+            lines.forEach(line => {
+                // Skip comments and empty lines
+                if (line.trim().startsWith('#') || line.trim() === '') return;
+                
+                // Parse format: (group,element)\tVR\tAttributeName\tVM
+                // The format uses tabs, so let's split by tab first
+                const parts = line.split('\t');
+                if (parts.length >= 3) {
+                    const tagMatch = parts[0].match(/\(([0-9A-Fa-f]{4}),([0-9A-Fa-f]{4})\)/);
+                    if (tagMatch) {
+                        const group = tagMatch[1].toUpperCase();
+                        const element = tagMatch[2].toUpperCase();
+                        const vr = parts[1].trim();
+                        const name = parts[2].trim();
+                        const tag = `(${group},${element})`;
+                        
+                        this.dicomDictionary[tag] = {
+                            name: name,
+                            vr: vr,
+                            vm: parts[3] ? parts[3].trim() : '1'
+                        };
+                        parsedCount++;
+                    }
+                }
+            });
+            
+            console.log('DICOM dictionary loaded:', parsedCount, 'tags');
+            // Log a few sample entries
+            const sampleTags = ['(0008,0020)', '(0010,0010)', '(0028,0010)'];
+            sampleTags.forEach(tag => {
+                if (this.dicomDictionary[tag]) {
+                    console.log(`Sample: ${tag} = ${this.dicomDictionary[tag].name}`);
+                }
+            });
+        } catch (error) {
+            console.error('Failed to load DICOM dictionary:', error);
+        }
+    }
+
+    filterDicomHeader(searchTerm) {
+        const table = document.querySelector('.dicom-header-table table');
+        if (!table) return;
+        
+        const rows = table.querySelectorAll('tbody tr');
+        const term = searchTerm.toLowerCase();
+        
+        rows.forEach(row => {
+            const tag = row.cells[0].textContent.toLowerCase();
+            const name = row.cells[2].textContent.toLowerCase();
+            const value = row.cells[3].textContent.toLowerCase();
+            
+            if (tag.includes(term) || name.includes(term) || value.includes(term)) {
+                row.classList.remove('hidden');
+            } else {
+                row.classList.add('hidden');
+            }
         });
     }
 
@@ -1737,8 +1820,12 @@ class DicomViewer {
             
             if (!dataSet) {
                 document.getElementById('dicomTags').innerHTML = '<p>No DICOM metadata available</p>';
+                document.getElementById('dicomHeaderTable').innerHTML = '<p>No DICOM metadata available</p>';
                 return;
             }
+            
+            // Store the current DICOM data for header display
+            this.currentDicomData = dataSet;
             
             const tagsContainer = document.getElementById('dicomTags');
             tagsContainer.innerHTML = '';
@@ -1786,10 +1873,131 @@ class DicomViewer {
                 tagsContainer.innerHTML = '<p>No readable DICOM tags found</p>';
             }
             
+            // Update the DICOM header table
+            this.updateDicomHeaderTable(dataSet);
+            
         } catch (error) {
             console.error('Error reading DICOM tags:', error);
             document.getElementById('dicomTags').innerHTML = '<p>Error reading DICOM metadata</p>';
+            document.getElementById('dicomHeaderTable').innerHTML = '<p>Error reading DICOM metadata</p>';
         }
+    }
+
+    updateDicomHeaderTable(dataSet) {
+        const container = document.getElementById('dicomHeaderTable');
+        
+        if (!dataSet || !dataSet.elements) {
+            container.innerHTML = '<p>No DICOM data available</p>';
+            return;
+        }
+        
+        // Create table
+        const table = document.createElement('table');
+        const thead = document.createElement('thead');
+        const tbody = document.createElement('tbody');
+        
+        // Table headers
+        thead.innerHTML = `
+            <tr>
+                <th class="tag-column">Tag</th>
+                <th class="vr-column">VR</th>
+                <th class="name-column">Name</th>
+                <th class="value-column">Value</th>
+            </tr>
+        `;
+        
+        // Get all DICOM elements and sort by tag
+        const elements = [];
+        for (let tag in dataSet.elements) {
+            const element = dataSet.elements[tag];
+            elements.push({
+                tag: tag,
+                element: element
+            });
+        }
+        
+        // Sort by tag
+        elements.sort((a, b) => {
+            const tagA = parseInt(a.tag.substring(1), 16);
+            const tagB = parseInt(b.tag.substring(1), 16);
+            return tagA - tagB;
+        });
+        
+        // Add rows for each element
+        let unknownCount = 0;
+        elements.forEach(({ tag, element }) => {
+            const row = document.createElement('tr');
+            
+            // Format tag as (group,element)
+            const group = tag.substring(1, 5).toUpperCase();
+            const elem = tag.substring(5, 9).toUpperCase();
+            const formattedTag = `(${group},${elem})`;
+            
+            // Get tag name from dictionary
+            const dictEntry = this.dicomDictionary[formattedTag];
+            const tagName = dictEntry ? dictEntry.name : 'Unknown';
+            const vr = element.vr || (dictEntry ? dictEntry.vr : '??');
+            
+            if (!dictEntry && unknownCount < 3) {
+                console.log(`Tag not found in dictionary: ${formattedTag}, raw tag: ${tag}`);
+                unknownCount++;
+            }
+            
+            // Get value
+            let value = '';
+            try {
+                if (element.length > 100) {
+                    value = `<Binary Data (${element.length} bytes)>`;
+                } else {
+                    value = dataSet.string(tag) || '';
+                    if (value === '') {
+                        // Try to get numeric value
+                        if (vr === 'US' || vr === 'SS') {
+                            const numValue = dataSet.uint16(tag);
+                            if (numValue !== undefined) value = numValue.toString();
+                        } else if (vr === 'UL' || vr === 'SL') {
+                            const numValue = dataSet.uint32(tag);
+                            if (numValue !== undefined) value = numValue.toString();
+                        } else if (vr === 'FL') {
+                            const numValue = dataSet.float(tag);
+                            if (numValue !== undefined) value = numValue.toString();
+                        } else if (vr === 'FD') {
+                            const numValue = dataSet.double(tag);
+                            if (numValue !== undefined) value = numValue.toString();
+                        }
+                    }
+                    
+                    // Truncate long values
+                    if (value.length > 200) {
+                        value = value.substring(0, 200) + '...';
+                    }
+                }
+            } catch (e) {
+                value = '<Error reading value>';
+            }
+            
+            row.innerHTML = `
+                <td class="tag-column">${formattedTag}</td>
+                <td class="vr-column">${vr}</td>
+                <td class="name-column">${tagName}</td>
+                <td class="value-column">${this.escapeHtml(value)}</td>
+            `;
+            
+            tbody.appendChild(row);
+        });
+        
+        table.appendChild(thead);
+        table.appendChild(tbody);
+        container.innerHTML = '';
+        container.appendChild(table);
+        
+        console.log('DICOM header table updated with', elements.length, 'tags');
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     addTagToDisplay(name, value, container) {

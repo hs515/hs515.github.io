@@ -106,6 +106,7 @@
                         <button class="tab-btn active" data-tab="dicom-info">DICOM Info</button>
                         <button class="tab-btn" data-tab="measurements">Measurements</button>
                         <button class="tab-btn" data-tab="annotations">Annotations</button>
+                        <button class="tab-btn" data-tab="dicom-header">DICOM Header</button>
                     </div>
                     
                     <div id="dicom-info" class="tab-content active">
@@ -132,6 +133,16 @@
                         </div>
                         <div class="annotation-controls">
                             <button id="clearAllAnnotations" class="btn-small">Clear All</button>
+                        </div>
+                    </div>
+                    
+                    <div id="dicom-header" class="tab-content">
+                        <h4>DICOM Header</h4>
+                        <div class="dicom-header-controls">
+                            <input type="text" id="headerSearch" class="header-search" placeholder="Search tags...">
+                        </div>
+                        <div id="dicomHeaderTable" class="dicom-header-table">
+                            <p>No image selected</p>
                         </div>
                     </div>
                 </div>
